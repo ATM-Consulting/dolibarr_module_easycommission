@@ -1,0 +1,64 @@
+# Copyright (C) 2021 SuperAdmin <support@atm-consulting.fr>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#
+# Générique
+#
+
+# Module label 'ModuleEasyCommissionName'
+ModuleEasyCommissionName = EasyCommission
+# Module description 'ModuleEasyCommissionDesc'
+ModuleEasyCommissionDesc = Calcul des commissions des commerciaux par tranche de remise
+
+#
+# Page d'administration
+#
+EasyCommissionSetup = Configuration du module EasyCommission
+Settings = Réglages
+EasyCommissionSetupPage = Page de configuration du module EasyCommission
+EASYCOMMISSION_GLOBAL_CONF_TITLE = Configuration globale
+EASYCOMMISSION_USER_GROUP = Groupe d'utilisateurs pris en compte pour le calcul du commissionnement
+EASYCOMMISSION_EXCLUDE_CATEGORY = Catégorie de produits/service à ne pas prendre en compte pour le calcul de commissionnement
+
+#
+# Page Matrice de commissionnement
+#
+EASYCOMMISSION_MATRIX_CONF_TITLE = Configuration de la matrice de commissionnement
+commissioningMatrix = Matrice de commissionnement
+easyCommissionDiscountPercentage = POURCENTAGE DE REMISE
+easyCommissionCommissionPercentage = POURCENTAGE DE COMMISSION
+easyCommissionFrom = De
+easyCommissionTo = à
+easyCommissionAddLine = Ajouter une ligne
+errorCreateLine = Une erreur est survenue lors de la création de la ligne
+
+
+#
+# Page À propos
+#
+About = À propos
+EasyCommissionAbout = À propos de EasyCommission
+EasyCommissionAboutPage = Page à propos de EasyCommission
+
+#
+# Page d'exemple
+#
+MyPageName = Nom de ma page
+
+#
+# Box d'exemple
+#
+MyWidget = Mon widget
+MyWidgetDescription = Description de mon widget
