@@ -21,7 +21,8 @@ require_once DOL_DOCUMENT_ROOT . '/custom/easycommission/class/easycommission.cl
 // Load traductions files requiredby by page
 $langs->loadLangs(array("easycommission@easycommission", "other", 'main'));
 
-$action 		= GETPOST('action');
+$action 		        = GETPOST('action');
+$lineToRemoveId 		= GETPOST('currentIdLine');
 
 $errormysql = -1;
 $jsonResponse = new stdClass();
@@ -38,9 +39,9 @@ if (isset($action) && $action == 'addLineToMatrix' ) {
     if($res > 0){
         while($obj = $db->fetch_object($res)){
             $out.= '<tr>';
-            $out.= '<td><input name="TCommissionnement['.($obj->maxid+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'">%</td>';
-            $out.= '<td><input name="TCommissionnement['.($obj->maxid+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'">%</td>';
-            $out.= '<td><input name="TCommissionnement['.($obj->maxid+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">%</td>';
+            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" name="TCommissionnement['.($obj->maxid+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'">%</td>';
+            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" name="TCommissionnement['.($obj->maxid+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'">%</td>';
+            $out.= '<td align="center"><input type="number" min="0" max="100" step="0.1" name="TCommissionnement['.($obj->maxid+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">%</td>';
             $out.= '</tr>';
         }
     }
@@ -50,6 +51,21 @@ if (isset($action) && $action == 'addLineToMatrix' ) {
 	 } else {
 	     $jsonResponse->newMatrixLine = $out;
      }
+}
+
+if (isset($action) && $action == 'removeLineToMatrix') {
+
+    // On supprime une ligne de la matrice
+    $sql = 'DELETE FROM ' .MAIN_DB_PREFIX.'easycommission_matrix WHERE rowid = '.$lineToRemoveId;
+
+    $res = $db->query($sql);
+    if (!$res){
+        $jsonResponse->error =  $langs->trans("errorRemoveLine");
+	}
+    else {
+        $jsonResponse->message = $langs->trans('removeLineSucess');
+    }
+
 }
 
 

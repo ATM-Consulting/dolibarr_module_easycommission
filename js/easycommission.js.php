@@ -72,7 +72,7 @@ $(document).ready(function() {
 	$(document).on("click", ".easycommissionaddbtn", function () {
 
 		var currentBloc = $(this).parent().parent();
-		var currentTable = currentBloc.find('table.noborder.centpercent.liste');
+		var currentTable = currentBloc.find('table.noborder.centpercent');
 
 		$.ajax({
 			url: "<?php print dol_buildpath('easycommission/scripts/interface.php', 1)?>",
@@ -83,14 +83,39 @@ $(document).ready(function() {
 			},
 			success: function (data) {
 				if(!data.error) {
+				    console.log(data.newMatrixLine);
 					currentTable.append(data.newMatrixLine);
 					setCommissionMessage($out);
 				}else {
 					setCommissionMessage(data.error, "error");
 				}
+			}
+		})
+	});
+
+	/**
+	 * Suppression d'une ligne de la matrice de commissionnement
+	 */
+	$(document).on("click", ".easycommissionrmvbtn", function () {
+
+	    var currentLine = $(this).parent().parent();
+	    var currentLineId = $(this).parent().parent().attr('data-id');
+
+		$.ajax({
+			url: "<?php print dol_buildpath('easycommission/scripts/interface.php', 1)?>",
+			method: "POST",
+			dataType: "json",  // format de réponse attendu
+			data: {
+			    currentIdLine : currentLineId,
+				action: 'removeLineToMatrix'
 			},
-			error: function (err) {
-				setCommissionMessage(err.responseText, "error");
+			success: function (data) {
+				if(!data.error) {
+                    currentLine.remove();
+					setCommissionMessage(data.message);
+				}else {
+					setCommissionMessage(data.error, "error");
+				}
 			}
 		})
 	});

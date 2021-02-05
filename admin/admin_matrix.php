@@ -86,6 +86,11 @@ if($action == $langs->trans("Save")){
         $easyCommission->discountPercentageTo = $commissionnement['discountPercentageTo'];
         $easyCommission->commissionPercentage = $commissionnement['commissionPercentage'];
 
+
+        if(empty($commissionnement['discountPercentageFrom']) || empty($commissionnement['discountPercentageTo']) || empty($commissionnement['commissionPercentage'])){
+            $msg = $langs->trans('errorCreateLine');
+        }
+
         if(!empty($easyCommission->id)){
             $res = $easyCommission->update($user);
             if($res > 0){

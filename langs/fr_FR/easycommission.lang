@@ -42,7 +42,10 @@ easyCommissionCommissionPercentage = POURCENTAGE DE COMMISSION
 easyCommissionFrom = De
 easyCommissionTo = à
 easyCommissionAddLine = Ajouter une ligne
+easyCommissionRemoveLine = Supprimer la ligne
 errorCreateLine = Une erreur est survenue lors de la création de la ligne
+errorRemoveLine = Une erreur est survenue lors de la suppression de la ligne
+removeLineSucess = La ligne a bien été supprimée
 
 
 #
