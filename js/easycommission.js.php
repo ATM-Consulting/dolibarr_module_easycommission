@@ -72,13 +72,15 @@ $(document).ready(function() {
 	$(document).on("click", ".easycommissionaddbtn", function () {
 
 		var currentBloc = $(this).parent().parent();
-		var currentTable = currentBloc.find('table.noborder.centpercent.liste');
+		var currentTable = currentBloc.find('table.noborder.centpercent');
+		var lastLineId = currentTable.find('tr:last-child').attr('data-id');
 
 		$.ajax({
 			url: "<?php print dol_buildpath('easycommission/scripts/interface.php', 1)?>",
 			method: "POST",
 			dataType: "json",  // format de réponse attendu
 			data: {
+				lastTrDataId: lastLineId,
 				action: 'addLineToMatrix'
 			},
 			success: function (data) {
@@ -88,9 +90,33 @@ $(document).ready(function() {
 				}else {
 					setCommissionMessage(data.error, "error");
 				}
+			}
+		})
+	});
+
+	/**
+	 * Suppression d'une ligne de la matrice de commissionnement
+	 */
+	$(document).on("click", ".easycommissionrmvbtn", function () {
+
+	    var currentLine = $(this).parent().parent();
+	    var currentLineId = $(this).parent().parent().attr('data-id');
+
+		$.ajax({
+			url: "<?php print dol_buildpath('easycommission/scripts/interface.php', 1)?>",
+			method: "POST",
+			dataType: "json",  // format de réponse attendu
+			data: {
+			    currentIdLine : currentLineId,
+				action: 'removeLineToMatrix'
 			},
-			error: function (err) {
-				setCommissionMessage(err.responseText, "error");
+			success: function (data) {
+				if(!data.error) {
+                    currentLine.remove();
+					setCommissionMessage(data.message);
+				}else {
+					setCommissionMessage(data.error, "error");
+				}
 			}
 		})
 	});

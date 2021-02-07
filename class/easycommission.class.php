@@ -86,15 +86,15 @@ class easyCommission extends CommonObject
 
         $out = '';
 
-        $out = '<div class="table-responsive">';
-        $out.= '<table class="noborder centpercent liste" border="1">';
-        $out.= '<tr>';
-        $out.= '<th colspan="2">'.$langs->trans('easyCommissionDiscountPercentage').'</th>';
-        $out.= '<th>'.$langs->trans('easyCommissionCommissionPercentage').'</th>';
-        $out.= '<tr>';
-        $out.= '<td>'.$langs->trans('easyCommissionFrom').'</td>';
-        $out.= '<td>'.$langs->trans('easyCommissionTo').'</td>';
-        $out.= '<td></td>';
+        $out = '<div>';
+        $out.= '<table class="noborder centpercent">';
+        $out.= '<tr class="liste-titre">';
+        $out.= '<th align="left" colspan="2" class="wrapcolumntitle liste_titre">'.$langs->trans('easyCommissionDiscountPercentage').'</th>';
+        $out.= '<th align="left" class="wrapcolumntitle liste_titre">'.$langs->trans('easyCommissionCommissionPercentage').'</th>';
+        $out.= '<tr class="liste-titre">';
+        $out.= '<td class="maxwidth100 tddict">'.$langs->trans('easyCommissionFrom').'</td>';
+        $out.= '<td class="maxwidth100 tddict">'.$langs->trans('easyCommissionTo').'</td>';
+        $out.= '<td class="maxwidth100 tddict"></td>';
         $out.= '</tr>';
 
         $sql = 'SELECT * FROM ' .MAIN_DB_PREFIX.'easycommission_matrix';
@@ -120,17 +120,20 @@ class easyCommission extends CommonObject
      */
     public function dynamicMacthName($rowTable){
 
+        global $langs;
         $out = '';
 
-        $out.= '<tr>';
-        $out.= '<td><input name="TCommissionnement['.$rowTable->rowid.'][discountPercentageFrom]'.'" value="'.$rowTable->discountPercentageFrom.'">%</td>';
-        $out.= '<td><input name="TCommissionnement['.$rowTable->rowid.'][discountPercentageTo]'.'" value="'.$rowTable->discountPercentageTo.'">%</td>';
-        $out.= '<td><input name="TCommissionnement['.$rowTable->rowid.'][commissionPercentage]'.'" value="'.$rowTable->commissionPercentage.'">%</td>';
+        $out.= '<tr class="oddeven easycommissionValues" data-id='.$rowTable->rowid.'>';
+        $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageFrom]'.'" value="'.$rowTable->discountPercentageFrom.'">%</td>';
+        $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageTo]'.'" value="'.$rowTable->discountPercentageTo.'">%</td>';
+        $out.= '<td align="left" class="maxwidth100 tddict"><input type="number" min="0" max="100" required step="0.1" name="TCommissionnement['.$rowTable->rowid.'][commissionPercentage]'.'" value="'.$rowTable->commissionPercentage.'">%';
+        $out.= '<span class="fas fa-trash pictodelete easycommissionrmvbtn pull-right" style="cursor: pointer;" title="'.$langs->trans('easyCommissionRemoveLine').'"></span>';
+        $out.= '</td>';
         $out.= '</tr>';
 
         return $out;
     }
-    
+
 
 	/**
 	 * Create object into database
