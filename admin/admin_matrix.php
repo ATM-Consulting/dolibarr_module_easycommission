@@ -63,7 +63,6 @@ $value = GETPOST('value', 'alpha');
 $error = 0;
 $setupnotempty = 0;
 
-
 /*
  * Actions
  */
@@ -86,11 +85,6 @@ if($action == $langs->trans("Save")){
         $easyCommission->discountPercentageTo = $commissionnement['discountPercentageTo'];
         $easyCommission->commissionPercentage = $commissionnement['commissionPercentage'];
 
-
-        if(empty($commissionnement['discountPercentageFrom']) || empty($commissionnement['discountPercentageTo']) || empty($commissionnement['commissionPercentage'])){
-            $msg = $langs->trans('errorCreateLine');
-        }
-
         if(!empty($easyCommission->id)){
             $res = $easyCommission->update($user);
             if($res > 0){
@@ -98,7 +92,6 @@ if($action == $langs->trans("Save")){
             }
         } else {
             $easyCommission->create($user);
-            $msg = $langs->trans('SetupSaved');
         }
     }
 
@@ -139,6 +132,8 @@ print $matrix->displayCommissionMatrix();
 
 _updateBtn();
 
+print '</table>';
+
 print '</form>';
 
 // Page end
@@ -166,7 +161,7 @@ function _setupPrintTitle($title = "", $width = 300) {
  */
 function _updateBtn() {
     global $langs;
-    print '<div style="text-align: right;" >';
+    print '<div style="text-align: right;margin-right: 15px" >';
     print '<input name="action" type="submit" class="butAction" value="'.$langs->trans("Save").'">';
     print '</div>';
 }

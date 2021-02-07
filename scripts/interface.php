@@ -22,6 +22,7 @@ require_once DOL_DOCUMENT_ROOT . '/custom/easycommission/class/easycommission.cl
 $langs->loadLangs(array("easycommission@easycommission", "other", 'main'));
 
 $action 		        = GETPOST('action');
+$lastTableTrId	        = GETPOST('lastTrDataId');
 $lineToRemoveId 		= GETPOST('currentIdLine');
 
 $errormysql = -1;
@@ -38,11 +39,12 @@ if (isset($action) && $action == 'addLineToMatrix' ) {
     $res = $db->query($sql);
     if($res > 0){
         while($obj = $db->fetch_object($res)){
-            $out.= '<tr>';
-            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" name="TCommissionnement['.($obj->maxid+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'">%</td>';
-            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" name="TCommissionnement['.($obj->maxid+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'">%</td>';
-            $out.= '<td align="center"><input type="number" min="0" max="100" step="0.1" name="TCommissionnement['.($obj->maxid+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">%</td>';
-            $out.= '</tr>';
+            $out.= '<tr data-id='.($lastTableTrId+1).'>';
+            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($lastTableTrId+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'">%</td>';
+            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($lastTableTrId+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'">%</td>';
+            $out.= '<td align="left"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($lastTableTrId+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">%';
+	        $out.= '</td>';
+	        $out.= '</tr>';
         }
     }
 

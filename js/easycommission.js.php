@@ -73,17 +73,18 @@ $(document).ready(function() {
 
 		var currentBloc = $(this).parent().parent();
 		var currentTable = currentBloc.find('table.noborder.centpercent');
+		var lastLineId = currentTable.find('tr:last-child').attr('data-id');
 
 		$.ajax({
 			url: "<?php print dol_buildpath('easycommission/scripts/interface.php', 1)?>",
 			method: "POST",
 			dataType: "json",  // format de réponse attendu
 			data: {
+				lastTrDataId: lastLineId,
 				action: 'addLineToMatrix'
 			},
 			success: function (data) {
 				if(!data.error) {
-				    console.log(data.newMatrixLine);
 					currentTable.append(data.newMatrixLine);
 					setCommissionMessage($out);
 				}else {

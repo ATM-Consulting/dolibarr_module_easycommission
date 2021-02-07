@@ -70,22 +70,6 @@ $setupnotempty = 0;
 /*
  * Actions
  */
- if (is_array($_POST))
-    {
-        foreach ($_POST as $key => $val)
-        {
-        	$reg = array();
-            if (preg_match('/^param(\d*)$/', $key, $reg))    // Works for POST['param'], POST['param1'], POST['param2'], ...
-            {
-                $param = GETPOST("param".$reg[1], 'alpha');
-                $value = GETPOST("value".$reg[1], 'alpha');
-                if (is_array($value))
-                {
-                   $_POST["value".$reg[1]] = json_encode($value); // Pour gérer les multiselects avec l'inclusion standard
-                }
-            }
-        }
-    }
 
 if((float) DOL_VERSION >= 6) {
     include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
@@ -129,17 +113,8 @@ _printInputFormPart('EASYCOMMISSION_USER_GROUP', false, '', array(), $form->sele
 
 // TAGS-CATEGORIES
 if($conf->categorie->enabled) {
-    $cate_arbo = $form->select_all_categories(Categorie::TYPE_PRODUCT, '', 'parent', 64, 0, 1);
-    $c = new Categorie($db);
-    $cats = $c->containing($object->id, Categorie::TYPE_PRODUCT);
-    $arrayselected = [];
-    if(is_array($cats)) {
-        foreach($cats as $cat) {
-            $arrayselected[] = $cat->id;
-        }
-    }
 
-    _printInputFormPart('EASYCOMMISSION_EXCLUDE_CATEGORY', false, '', array(), $form->multiselectarray('value'.($inputCount+1), $cate_arbo, json_decode($conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY), '', 0, '', 0, '50%'));
+	_printInputFormPart('EASYCOMMISSION_EXCLUDE_CATEGORY', false, '', array(), $form->select_all_categories(Categorie::TYPE_PRODUCT, $conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY, 'value'.($inputCount+1), 0, '', 0, '50%'));
 
 }
 
