@@ -24,6 +24,8 @@ $langs->loadLangs(array("easycommission@easycommission", "other", 'main'));
 $action 		        = GETPOST('action');
 $lastTableTrId	        = GETPOST('lastTrDataId');
 $lineToRemoveId 		= GETPOST('currentIdLine');
+$userMatrix 		    = GETPOST('fk_user');
+$personalValueState 	= GETPOST('state_MATRIX_PERSONAL_VALUE');
 
 $errormysql = -1;
 $jsonResponse = new stdClass();
@@ -35,15 +37,19 @@ if (isset($action) && $action == 'addLineToMatrix' ) {
     // On insert une ligne dans la matrice
     $out = '';
 
-    $sql = 'SELECT MAX(rowid) as maxid FROM ' .MAIN_DB_PREFIX.'easycommission_matrix';
+    $sql = 'SELECT IFNULL(MAX(rowid), 0) as maxid FROM ' .MAIN_DB_PREFIX.'easycommission_matrix';
     $res = $db->query($sql);
     if($res > 0){
         while($obj = $db->fetch_object($res)){
-            $out.= '<tr data-id='.($lastTableTrId+1).'>';
-            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($lastTableTrId+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'">%</td>';
-            $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($lastTableTrId+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'">%</td>';
-            $out.= '<td align="left"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($lastTableTrId+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">%';
-	        $out.= '</td>';
+            $out.= '<tr data-id='.($obj->maxid+1).'>';
+            $out.= '<td class="maxwidth100 tddict"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($obj->maxid+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'"></td>';
+            $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
+            $out.= '<td class="maxwidth100 tddict"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($obj->maxid+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'"></td>';
+            $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
+            $out.= '<td align="left"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($obj->maxid+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">';
+            $out.= '<td class="maxwidth100 tddict" style="width: 60px">%';
+            $out.= '<span class="fas fa-trash pictodelete easycommissionrmvbtn pull-right" style="cursor: pointer;" title="'.$langs->trans('easyCommissionRemoveLine').'"></span>';
+            $out.= '</td>';
 	        $out.= '</tr>';
         }
     }
@@ -68,6 +74,21 @@ if (isset($action) && $action == 'removeLineToMatrix') {
         $jsonResponse->message = $langs->trans('removeLineSucess');
     }
 
+}
+
+if (isset($action) && $action == 'getEasyCommissionMatrix') {
+    $out = '';
+    $matrix = new easyCommission($db);
+    $TCommission = $matrix->fetchByArray(0, array('fk_user'=> $userMatrix),false,false);
+
+    if(empty($TCommission)) {
+        $matrix->duplicateConfComm($userMatrix);
+    }
+
+    if($personalValueState == 'true') $out = $matrix->displayCommissionMatrix($userMatrix);
+    if($personalValueState == 'false') $out = $matrix->displayCommissionMatrix();
+
+    $jsonResponse->getMatrix = $out;
 }
 
 

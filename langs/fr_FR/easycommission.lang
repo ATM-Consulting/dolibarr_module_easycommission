@@ -47,6 +47,12 @@ emptyValueMatrix = Une des valeurs est vide. Veuillez renseigner toutes les vale
 errorRemoveLine = Une erreur est survenue lors de la suppression de la ligne
 removeLineSucess = La ligne a bien été supprimée
 
+#
+# Surcharge de la matrice de commissionnement par utilisateur
+#
+easycommissionTitle = Commissionnement
+matrixPersonalValue = Tableau de commissionnement
+
 
 #
 # Page À propos

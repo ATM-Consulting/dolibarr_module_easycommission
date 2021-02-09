@@ -5,5 +5,6 @@ CREATE TABLE llx_easycommission_matrix
   discountPercentageFrom float DEFAULT 0,
   discountPercentageTo float DEFAULT 0,
   commissionPercentage float DEFAULT 0,
-  tms timestamp
+  tms timestamp,
+  fk_user integer DEFAULT NULL
 )ENGINE=innodb;
