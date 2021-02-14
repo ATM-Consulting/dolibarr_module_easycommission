@@ -24,12 +24,13 @@ $langs->loadLangs(array("easycommission@easycommission", "other", 'main'));
 $action 		        = GETPOST('action');
 $lastTableTrId	        = GETPOST('lastTrDataId');
 $lineToRemoveId 		= GETPOST('currentIdLine');
+$maxLines 		        = GETPOST('maxLines');
+$lineValues 		    = GETPOST('lineValues');
 $userMatrix 		    = GETPOST('fk_user');
 $personalValueState 	= GETPOST('state_MATRIX_PERSONAL_VALUE');
 
 $errormysql = -1;
 $jsonResponse = new stdClass();
-
 
 // Add a Matrix Line
 if (isset($action) && $action == 'addLineToMatrix' ) {
@@ -41,12 +42,12 @@ if (isset($action) && $action == 'addLineToMatrix' ) {
     $res = $db->query($sql);
     if($res > 0){
         while($obj = $db->fetch_object($res)){
-            $out.= '<tr data-id='.($obj->maxid+1).'>';
-            $out.= '<td class="maxwidth100 tddict"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($obj->maxid+1).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'"></td>';
+            $out.= '<tr class="oddeven easycommissionValues" data-id='.($maxLines + $obj->maxid).'>';
+            $out.= '<td class="maxwidth100 tddict valueInputFrom"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($maxLines + $obj->maxid).'][discountPercentageFrom]'.'" value="'.$obj->discountPercentageFrom.'"></td>';
             $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
-            $out.= '<td class="maxwidth100 tddict"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($obj->maxid+1).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'"></td>';
+            $out.= '<td class="maxwidth100 tddict valueInputTo"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($maxLines + $obj->maxid).'][discountPercentageTo]'.'" value="'.$obj->discountPercentageTo.'"></td>';
             $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
-            $out.= '<td align="left"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($obj->maxid+1).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">';
+            $out.= '<td class="maxwidth100 tddict valueCommission"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.($maxLines + $obj->maxid).'][commissionPercentage]'.'" value="'.$obj->commissionPercentage.'">';
             $out.= '<td class="maxwidth100 tddict" style="width: 60px">%';
             $out.= '<span class="fas fa-trash pictodelete easycommissionrmvbtn pull-right" style="cursor: pointer;" title="'.$langs->trans('easyCommissionRemoveLine').'"></span>';
             $out.= '</td>';
@@ -57,8 +58,8 @@ if (isset($action) && $action == 'addLineToMatrix' ) {
 	 if ($res == $errormysql){
 		 $jsonResponse->error =  $langs->trans("errorCreateLine");
 	 } else {
-	     $jsonResponse->newMatrixLine = $out;
-     }
+		 $jsonResponse->newMatrixLine = $out;
+	 }
 }
 
 if (isset($action) && $action == 'removeLineToMatrix') {

@@ -70,10 +70,7 @@ $setupnotempty = 0;
 if($action == $langs->trans("Save")){
 
     $msg = '';
-
-    $TDiscountPercentageFrom = GETPOST('discountPercentageFrom');
-    $TDiscountPercentageTo = GETPOST('discountPercentageTo');
-    $TCommissionPercentage = GETPOST('commissionPercentage');
+    $errorMsg = '';
     $TCommissionnement = GETPOST('TCommissionnement', 'array');
 
     foreach($TCommissionnement as $fk_commission => $commissionnement){
@@ -81,11 +78,33 @@ if($action == $langs->trans("Save")){
         $easyCommission = new EasyCommission($db);
         $easyCommission->fetch($fk_commission);
 
-        $easyCommission->discountPercentageFrom = $commissionnement['discountPercentageFrom'];
-        $easyCommission->discountPercentageTo = $commissionnement['discountPercentageTo'];
-        $easyCommission->commissionPercentage = $commissionnement['commissionPercentage'];
+        $easyCommission->discountPercentageFrom = floatval($commissionnement['discountPercentageFrom']);
+        $easyCommission->discountPercentageTo = floatval($commissionnement['discountPercentageTo']);
+        $easyCommission->commissionPercentage = floatval($commissionnement['commissionPercentage']);
 
-        if(!empty($easyCommission->id)){
+
+	    if ((! is_numeric($commissionnement['discountPercentageFrom'])) || (! is_numeric($commissionnement['discountPercentageTo'])) || (! is_numeric($commissionnement['commissionPercentage']))) {
+		    $errorMsg = $langs->trans('notNumericValueMatrix');
+		    break;
+	    }
+        if (empty($easyCommission->discountPercentageFrom || empty($easyCommission->discountPercentageTo) || empty($easyCommission->commissionPercentage))) {
+        	$errorMsg = $langs->trans('emptyValueMatrix');
+        	break;
+        }
+        if ($easyCommission->discountPercentageTo < $easyCommission->discountPercentageFrom) {
+	        $errorMsg = $langs->trans('easycommissionMatrixWrongDeltaValue');
+	        break;
+        }
+	    if (($easyCommission->discountPercentageFrom < 0) || ($easyCommission->discountPercentageTo < 0) || ($easyCommission->commissionPercentage < 0)) {
+		    $errorMsg = $langs->trans('easycommissionMatrixUnderZeroValue');
+		    break;
+	    }
+	    if (($easyCommission->discountPercentageFrom > 100) || ($easyCommission->discountPercentageTo > 100) || ($easyCommission->commissionPercentage > 100)) {
+		    $errorMsg = $langs->trans('easycommissionMatrixOver100Value');
+		    break;
+	    }
+
+        if(! empty($easyCommission->id)){
             $res = $easyCommission->update($user);
             if($res > 0){
                 $msg = $langs->trans('SetupSaved');
@@ -95,7 +114,9 @@ if($action == $langs->trans("Save")){
         }
     }
 
-    setEventMessage($msg);
+    $msgToDisplay = ! empty($errorMsg) ? $errorMsg : $msg;
+    $typeOfMsgToDisplay = ! empty($errorMsg) ? 'errors' : 'mesgs';
+    setEventMessage($msgToDisplay, $typeOfMsgToDisplay);
 }
 
 
@@ -118,7 +139,7 @@ dol_fiche_head($head, 'matrix', $langs->trans("commissioningMatrix"), -1, '');
 $var = 0;
 
 
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form class="easycommissionForm" method="POST" action="'.$_SERVER['PHP_SELF'].'">';
 print '<input type="hidden" name="token" value="'.$_SESSION['newtoken'].'">';
 
 print '<table class="noborder" width="100%">';
