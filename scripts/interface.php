@@ -90,6 +90,9 @@ if (isset($action) && $action == 'getEasyCommissionMatrix') {
         $out = $matrix->displayCommissionMatrix($userMatrix);
     }
     else {
+        $sql = 'DELETE FROM ' .MAIN_DB_PREFIX.'easycommission_matrix WHERE fk_user = '.$userMatrix;
+        $res = $db->query($sql);
+
         $out = $matrix->displayCommissionMatrix();
     }
 
