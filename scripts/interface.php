@@ -86,8 +86,12 @@ if (isset($action) && $action == 'getEasyCommissionMatrix') {
         $matrix->duplicateConfComm($userMatrix);
     }
 
-    if($personalValueState == 'true') $out = $matrix->displayCommissionMatrix($userMatrix);
-    if($personalValueState == 'false') $out = $matrix->displayCommissionMatrix();
+    if($personalValueState == 'true') {
+        $out = $matrix->displayCommissionMatrix($userMatrix);
+    }
+    else {
+        $out = $matrix->displayCommissionMatrix();
+    }
 
     $jsonResponse->getMatrix = $out;
 }

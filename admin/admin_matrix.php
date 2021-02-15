@@ -67,7 +67,7 @@ $setupnotempty = 0;
  * Actions
  */
 
-if($action == $langs->trans("Save")){
+if($action == 'save_matrix'){
 
     $msg = '';
     $errorMsg = '';
@@ -141,6 +141,7 @@ $var = 0;
 
 print '<form class="easycommissionForm" method="POST" action="'.$_SERVER['PHP_SELF'].'">';
 print '<input type="hidden" name="token" value="'.$_SESSION['newtoken'].'">';
+print '<input type="hidden" name="action" value="save_matrix">';
 
 print '<table class="noborder" width="100%">';
 
@@ -183,7 +184,7 @@ function _setupPrintTitle($title = "", $width = 300) {
 function _updateBtn() {
     global $langs;
     print '<div style="text-align: right;margin-right: 15px" >';
-    print '<input name="action" type="submit" class="butAction" value="'.$langs->trans("Save").'">';
+    print '<input type="submit" class="butAction" value="'.$langs->trans("Save").'">';
     print '</div>';
 }
 

@@ -150,14 +150,13 @@ $head = user_prepare_head($object);
 $title = $langs->trans("User");
 
 if($action == 'edit') {
+
     print '<form class="easycommissionForm" method="post" action="'.$_SERVER["PHP_SELF"].'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
     print '<input type="hidden" name="action" value="update">';
     print '<input type="hidden" name="id" value="'.$id.'">';
     print '<input type="hidden" name="userid" value="'.$object->id.'">';
-}
 
-if($action == 'edit') {
     dol_fiche_head($head, 'easycommissionuser', $title, -1, 'user');
 
     $linkback = '';
@@ -256,9 +255,9 @@ if($action == 'edit') {
     }
 
     print '<div class="center">';
-    print '<input type="submit" class="button" name="save" value="'.$langs->trans("Save").'">';
+    print '<input type="submit" class="butAction" value="'.$langs->trans("Save").'">';
     print '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    print '<input type="submit" class="button" name="cancel" value="'.$langs->trans("Cancel").'">';
+    print '<input type="submit" name="cancel" class="button" value="'.$langs->trans("Cancel").'">';
     print '</div>';
 
     print '</form>';

@@ -82,6 +82,11 @@ class easyCommission extends CommonObject
 
 	}
 
+    /**
+     * Duplicate the matrix standard config
+     *
+     * @param int $fk_user
+     */
 	public function duplicateConfComm($fk_user) {
 	    global $db, $conf;
 
@@ -92,6 +97,13 @@ class easyCommission extends CommonObject
         $res = $db->query($sql);
     }
 
+    /**
+     * @param int   $limit
+     * @param array $TFilter
+     * @param bool  $loadChild
+     * @param bool  $justFetchIfOnlyOneResult
+     * @return array|int
+     */
     public function fetchByArray($limit = 0, $TFilter = array(), $loadChild = true, $justFetchIfOnlyOneResult = true) {
         $sql = 'SELECT rowid';
         $sql.= ' FROM '.MAIN_DB_PREFIX.$this->table_element;
@@ -127,7 +139,7 @@ class easyCommission extends CommonObject
     }
 
     /**
-     * @param string $mode
+     * @param int $fk_user
      * @return string Html of Commission Matrix
      */
     public function displayCommissionMatrix($fk_user = 0){
