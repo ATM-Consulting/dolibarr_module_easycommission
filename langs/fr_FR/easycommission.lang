@@ -46,6 +46,16 @@ easyCommissionRemoveLine = Supprimer la ligne
 emptyValueMatrix = Une des valeurs est vide. Veuillez renseigner toutes les valeurs.
 errorRemoveLine = Une erreur est survenue lors de la suppression de la ligne
 removeLineSucess = La ligne a bien été supprimée
+easycommissionMatrixUnderZeroValue = Aucune valeur ne peut être inférieure à zéro
+easycommissionMatrixOver100Value = Aucune valeur ne peut être supérieure à 100
+easycommissionMatrixWrongDeltaValue = La valeur "à" est inférieure à la valeur "De"
+notNumericValueMatrix = La valeur insérée n'est pas conforme. Seuls des nombres sont acceptés.
+
+#
+# Surcharge de la matrice de commissionnement par utilisateur
+#
+easycommissionTitle = Commissionnement
+matrixPersonalValue = Tableau de commissionnement
 
 
 #

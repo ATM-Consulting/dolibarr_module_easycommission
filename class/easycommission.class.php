@@ -34,6 +34,11 @@ class easyCommission extends CommonObject
 	 */
 	public $table_element = 'easycommission_matrix';
 
+	/**
+     * @var int ID of user that overload the matrix
+     */
+    public $fk_user = NULL;
+
     /**
 	 * @var int Pourcentage de remise palier 1
 	 */
@@ -58,6 +63,7 @@ class easyCommission extends CommonObject
 		'rowid' => array('type'=>'integer', 'label'=>'TechnicalID', 'enabled'=>1, 'visible'=>-1, 'position'=>1, 'notnull'=>1, 'index'=>1, 'comment'=>"Id",),
         'entity' =>array('type'=>'integer', 'label'=>'Entity', 'default'=>1, 'enabled'=>1, 'visible'=>-2, 'notnull'=>1, 'position'=>20, 'index'=>1),
         'tms' =>array('type'=>'timestamp', 'label'=>'DateModification', 'enabled'=>1, 'visible'=>-1, 'notnull'=>1, 'position'=>25),
+        'fk_user' => array('type'=>'integer', 'label'=>'User', 'visible'=>-1, 'enabled'=>1, 'position'=>35, 'notnull'=>0, 'index'=>1,),
         'discountPercentageFrom' => array('type'=>'real', 'label'=>'discountPercentageFrom', 'enabled'=>1, 'visible'=>1, 'default'=>1, 'position'=>55, 'notnull'=>1, 'css'=>'maxwidth75imp'),
         'discountPercentageTo' => array('type'=>'real', 'label'=>'discountPercentageTo', 'enabled'=>1, 'visible'=>1, 'default'=>1, 'position'=>65, 'notnull'=>1, 'css'=>'maxwidth75imp'),
 	    'commissionPercentage' => array('type'=>'real', 'label'=>'commissionPercentage', 'enabled'=>1, 'visible'=>1, 'default'=>1, 'position'=>75, 'notnull'=>1, 'css'=>'maxwidth75imp'),
@@ -77,27 +83,93 @@ class easyCommission extends CommonObject
 	}
 
     /**
-     * @param string $mode
+     * Duplicate the matrix standard config
+     *
+     * @param int $fk_user
+     */
+	public function duplicateConfComm($fk_user) {
+	    global $db, $conf;
+
+	    $sql = 'INSERT INTO '.MAIN_DB_PREFIX.$this->table_element.' (entity,discountPercentageFrom, discountPercentageTo, commissionPercentage, fk_user)';
+	    $sql .= ' SELECT '.$conf->entity.',discountPercentageFrom, discountPercentageTo, commissionPercentage,'.$fk_user.' FROM '.MAIN_DB_PREFIX.$this->table_element;
+	    $sql .= ' WHERE fk_user IS NULL';
+
+        $res = $db->query($sql);
+    }
+
+    /**
+     * @param int   $limit
+     * @param array $TFilter
+     * @param bool  $loadChild
+     * @param bool  $justFetchIfOnlyOneResult
+     * @return array|int
+     */
+    public function fetchByArray($limit = 0, $TFilter = array(), $loadChild = true, $justFetchIfOnlyOneResult = true) {
+        $sql = 'SELECT rowid';
+        $sql.= ' FROM '.MAIN_DB_PREFIX.$this->table_element;
+        $sql.= ' WHERE 1 = 1';
+
+        foreach($TFilter as $key => $field) {
+            $sql.= ' AND '.$this->db->escape($key).' = '.$this->quote($field, $this->fields[$key]);
+        }
+        if(! empty($limit)) $sql.= ' LIMIT '.$this->db->escape($limit);
+
+        $resql = $this->db->query($sql);
+        if(! $resql) {
+            $this->error = $this->db->lasterror();
+		    $this->errors[] = $this->error;
+            return -1;
+        }
+
+        $nbRow = $this->db->num_rows($resql);
+
+        $TRes = array();
+        while($obj = $this->db->fetch_object($resql)) {
+            if($justFetchIfOnlyOneResult) {
+                return $this->fetch($obj->rowid, $loadChild);
+            }
+
+            $o = new static($this->db);
+            $o->fetch($obj->rowid, $loadChild);
+            $TRes[] = $o;
+        }
+
+        if($justFetchIfOnlyOneResult) return 0;
+        return $TRes;
+    }
+
+    /**
+     * @param int $fk_user
      * @return string Html of Commission Matrix
      */
-    public function displayCommissionMatrix(){
+    public function displayCommissionMatrix($fk_user = 0){
 
         global $db, $langs;
 
         $out = '';
 
-        $out = '<div>';
+        $out = '<div class="easycommissionmatrixdiv">';
         $out.= '<table class="noborder centpercent">';
         $out.= '<tr class="liste-titre">';
-        $out.= '<th align="left" colspan="2" class="wrapcolumntitle liste_titre">'.$langs->trans('easyCommissionDiscountPercentage').'</th>';
-        $out.= '<th align="left" class="wrapcolumntitle liste_titre">'.$langs->trans('easyCommissionCommissionPercentage').'</th>';
+        $out.= '<th align="left" colspan="4" class="wrapcolumntitle liste_titre">'.$langs->trans('easyCommissionDiscountPercentage').'</th>';
+        $out.= '<th align="left" colspan="2" class="wrapcolumntitle liste_titre">'.$langs->trans('easyCommissionCommissionPercentage').'</th>';
         $out.= '<tr class="liste-titre">';
         $out.= '<td class="maxwidth100 tddict">'.$langs->trans('easyCommissionFrom').'</td>';
+        $out.= '<td class="maxwidth100 tddict"></td>';
         $out.= '<td class="maxwidth100 tddict">'.$langs->trans('easyCommissionTo').'</td>';
+        $out.= '<td class="maxwidth100 tddict"></td>';
+        $out.= '<td class="maxwidth100 tddict"></td>';
         $out.= '<td class="maxwidth100 tddict"></td>';
         $out.= '</tr>';
 
         $sql = 'SELECT * FROM ' .MAIN_DB_PREFIX.'easycommission_matrix';
+        if($fk_user > 0) {
+            $sql.= ' WHERE fk_user ='.$fk_user;
+        }
+        else {
+            $sql.= ' WHERE fk_user IS NULL';
+        }
+
         $res = $db->query($sql);
         if($res > 0){
             while($obj = $db->fetch_object($res)){
@@ -108,6 +180,7 @@ class easyCommission extends CommonObject
         $out.= '</table>';
         $out.= '<a>';
         $out.= '<span class="fa fa-plus-circle easycommissionaddbtn paddingleft" style="cursor: pointer;" title="'.$langs->trans('easyCommissionAddLine').'"> '.$langs->trans('easyCommissionAddLine').'</span>';
+        $out.= '</a>';
         $out.= '</div>';
         $out.= '</div>';
 
@@ -124,9 +197,12 @@ class easyCommission extends CommonObject
         $out = '';
 
         $out.= '<tr class="oddeven easycommissionValues" data-id='.$rowTable->rowid.'>';
-        $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageFrom]'.'" value="'.$rowTable->discountPercentageFrom.'">%</td>';
-        $out.= '<td class="maxwidth100 tddict"><input type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageTo]'.'" value="'.$rowTable->discountPercentageTo.'">%</td>';
-        $out.= '<td align="left" class="maxwidth100 tddict"><input type="number" min="0" max="100" required step="0.1" name="TCommissionnement['.$rowTable->rowid.'][commissionPercentage]'.'" value="'.$rowTable->commissionPercentage.'">%';
+        $out.= '<td class="maxwidth100 tddict valueInputFrom"><input style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageFrom]'.'" value="'.$rowTable->discountPercentageFrom.'"></td>';
+        $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
+        $out.= '<td class="maxwidth100 tddict valueInputTo"><input style="width:100%"  type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageTo]'.'" value="'.$rowTable->discountPercentageTo.'"></td>';
+        $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
+        $out.= '<td class="maxwidth100 tddict valueCommission"><input style="width:100%"  type="number" min="0" max="100" required step="0.1" name="TCommissionnement['.$rowTable->rowid.'][commissionPercentage]'.'" value="'.$rowTable->commissionPercentage.'">';
+        $out.= '<td class="maxwidth100 tddict" style="width: 60px">%';
         $out.= '<span class="fas fa-trash pictodelete easycommissionrmvbtn pull-right" style="cursor: pointer;" title="'.$langs->trans('easyCommissionRemoveLine').'"></span>';
         $out.= '</td>';
         $out.= '</tr>';

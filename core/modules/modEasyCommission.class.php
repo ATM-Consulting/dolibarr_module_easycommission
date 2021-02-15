@@ -151,7 +151,7 @@ class modEasyCommission extends DolibarrModules
 
 		// Array to add new pages in new tabs
 		$this->tabs = array(
-		'entity:+tabname:matrix:@easycommission:/easycommission/admin_matrice.php?id=__ID__'
+			'user:+easycommissionuser:easycommissionTitle:easycommission@easycommission:/easycommission/tab/easycommission_user_matrix.php?id=__ID__',
         );
 		// Example:
 		// $this->tabs[] = array('data'=>'objecttype:+tabname1:Title1:mylangfile@easycommission:$user->rights->easycommission->read:/easycommission/mynewtab1.php?id=__ID__');  					// To add a new tab identified by code tabname1
@@ -495,7 +495,10 @@ class modEasyCommission extends DolibarrModules
             $categ->fk_user_creat = null;
             $categ->fk_user_modif = null;
 
-            $categ->create($user);
+            $fk_category = $categ->create($user);
+            if($fk_category > 0){
+                dolibarr_set_const($db, 'EASYCOMMISSION_EXCLUDE_CATEGORY', $fk_category);
+            }
         }
 
 		$result = $this->_load_tables('/easycommission/sql/');
