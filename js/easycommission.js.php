@@ -141,20 +141,93 @@ $(document).ready(function () {
 	});
 
 	/**
-	 * Diverses vérifications de saisie
+	 * 	Vérification des tranches logiques au changement de valeur "De"
 	 */
-	$(document).on("change", "input[type=number]", function () {
+	$(document).one("focus", "input.inputFrom, input.inputTo", function () {
+
+		var TValuesFrom = [];
+		var TValuesTo = [];
+
+		// TValuesFrom - récupère toutes les valeurs "De"
+		var allInputsFrom = $(":input.inputFrom");
+		allInputsFrom.each(function (index, input) {
+			if (input.value) {
+				TValuesFrom.push(parseFloat(input.value));
+			}
+		})
+		// TValuesTo - récupère toutes les valeurs "à"
+		var allInputsTo = $(":input.inputTo");
+		allInputsTo.each(function (index, input) {
+			if (input.value) {
+				TValuesTo.push(parseFloat(input.value));
+			}
+		})
+
+		window.result = TValuesTo.reduce(function(result, field, index) {
+			result[TValuesFrom[index]] = field;
+			return result;
+		}, {})
+
+
+		// On récupère la valeur minimale de chacune des colonnes
+		// "window" rend les variables (minFrom, maxFrom, minTo) globales
+		window.minFrom = Math.min.apply(Math, TValuesFrom);
+		window.maxFrom = Math.max.apply(Math, TValuesFrom);
+		window.minTo = Math.min.apply(Math, TValuesTo);
+		window.maxTo = Math.max.apply(Math, TValuesTo);
+	});
+
+	/**
+	 * Vérification des tranches logiques au changement de valeur "à"
+	 */
+	$(document).on("change", "input.inputFrom", function () {
+
+		window.TErrorsFrom = [];
+		var currentInputFrom = parseFloat($(this).val());
+		var currentInputFromDiv = $(this);
+
+		$.each(result, function(from, to) {
+			if (currentInputFrom >= from && currentInputFrom <= to) {
+				currentInputFromDiv.css("borderColor", "red");
+				TErrorsFrom.push('errorTrancheFrom');
+			}
+		});
+	})
+
+	/**
+	 * Vérification des tranches logiques au changement de valeur "à"
+ 	 */
+	$(document).on("change", "input.inputTo", function () {
+
+		window.TErrorsTo = [];
+
+		var currentInputTo = parseFloat($(this).val());
+		var currentInputToDiv = $(this);
+
+		$.each(result, function(from, to) {
+			if (currentInputTo >= from && currentInputTo <= to) {
+				currentInputToDiv.css("borderColor", "red");
+				TErrorsTo.push('errorTrancheFrom');
+			}
+		});
+
+		/*
+		if (currentInputFrom >= maxTo && currentInputTo <= maxTo) {
+			currentInputToDiv.css("borderColor", "red");
+			TErrorsTo.push('errorTrancheTo');
+		}*/
+	})
+
+
+	/**
+	 *  Vérifications de saisie au changement des valeurs "Commission"
+	 */
+	$(document).on("change", "input.inputCommission", function () {
 
 		var currentValuesLine = $(this).parent().closest('tr');
-		var currentValueFrom = currentValuesLine.children('td.valueInputFrom').children('input').val();
-		var currentValueTo = currentValuesLine.children('td.valueInputTo').children('input').val();
-		var currentValueToDiv = currentValuesLine.children('td.valueInputTo').children('input');
 		var currentCommission = currentValuesLine.children('td.valueCommission').children('input').val();
 		var currentCommissionDiv = currentValuesLine.children('td.valueCommission').children('input');
 
-		if ((currentValueTo) && (currentValueFrom > currentValueTo)) {
-			currentValueToDiv.css("borderColor", "red");
-		}
 		if ((currentCommission) && (currentCommission > 100) || (currentCommission < 0)) {
 			currentCommissionDiv.css("borderColor", "red");
 		}
@@ -165,6 +238,11 @@ $(document).ready(function () {
 	 */
 	$(document).on("submit", "form.easycommissionForm", function (e) {
 
+		if (TErrorsFrom.length || TErrorsTo.length) {
+			e.preventDefault();
+			setCommissionMessage("Saisie incorrecte - Chevauchement des tranches de remise", 'error');
+		}
+
 		var allInputsLine = $('.easycommissionValues');
 
 		allInputsLine.each(function (index, input) {
@@ -172,23 +250,25 @@ $(document).ready(function () {
 			valInputFrom = input.firstChild.firstChild.value;
 			valueCommission = input.lastElementChild.previousSibling.firstChild.value;
 
-			if (valInputTo < valInputFrom) {
+			/*if (valInputTo < valInputFrom) {
 				e.preventDefault();
 				setCommissionMessage("La valeur 'à' est inférieure à la valeur 'De'", "error")
-			}
+			}*/
+
 			if ((!valInputFrom) || (!valInputTo) || (!valueCommission)) {
 				e.preventDefault();
-				setCommissionMessage("Une des valeurs est vide. Veuillez renseigner toutes les valeurs", "error")
+				setCommissionMessage("Une des valeurs est vide. Veuillez renseigner toutes les valeurs", 'error');
 			}
 			if ((valInputFrom < 0) || (valInputTo < 0) || (valueCommission < 0)) {
 				e.preventDefault();
-				setCommissionMessage("Aucune valeur ne peut être inférieure à zéro", "error")
+				setCommissionMessage("Aucune valeur ne peut être inférieure à zéro", 'error');
 			}
 			if ((valInputFrom > 100) || (valInputTo > 100) || (valueCommission > 100)) {
 				e.preventDefault();
-				setCommissionMessage("Aucune valeur ne peut être supérieure à 100", "error")
+				setCommissionMessage("Aucune valeur ne peut être supérieure à 100", 'error');
 			}
 		})
+
 	})
 
 	function setCommissionMessage($out, $type = "success") {

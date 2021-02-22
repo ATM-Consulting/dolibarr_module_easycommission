@@ -73,6 +73,11 @@ if($action == 'save_matrix'){
     $errorMsg = '';
     $TCommissionnement = GETPOST('TCommissionnement', 'array');
 
+	$TOnlyFrom = array_column($TCommissionnement, 'discountPercentageFrom');
+	$TOnlyTo = array_column($TCommissionnement, 'discountPercentageTo');
+	$minFrom = floatval(min($TOnlyFrom));
+	$minTo = floatval(min($TOnlyTo));
+
     foreach($TCommissionnement as $fk_commission => $commissionnement){
 
         $easyCommission = new EasyCommission($db);
@@ -82,12 +87,14 @@ if($action == 'save_matrix'){
         $easyCommission->discountPercentageTo = floatval($commissionnement['discountPercentageTo']);
         $easyCommission->commissionPercentage = floatval($commissionnement['commissionPercentage']);
 
-
 	    if ((! is_numeric($commissionnement['discountPercentageFrom'])) || (! is_numeric($commissionnement['discountPercentageTo'])) || (! is_numeric($commissionnement['commissionPercentage']))) {
 		    $errorMsg = $langs->trans('notNumericValueMatrix');
 		    break;
 	    }
-        if (empty($easyCommission->discountPercentageFrom || empty($easyCommission->discountPercentageTo) || empty($easyCommission->commissionPercentage))) {
+        if (empty($easyCommission->discountPercentageFrom) && ($easyCommission->discountPercentageFrom != 0) ||
+	        empty($easyCommission->discountPercentageTo) && ($easyCommission->discountPercentageFrom != 0)||
+	        empty($easyCommission->commissionPercentage) && ($easyCommission->discountPercentageFrom != 0))
+        {
         	$errorMsg = $langs->trans('emptyValueMatrix');
         	break;
         }
