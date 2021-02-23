@@ -140,88 +140,38 @@ $(document).ready(function () {
 		})
 	});
 
-	/**
-	 * 	Vérification des tranches logiques au changement de valeur "De"
-	 */
-	/*$(document).on("focus", "input.inputFrom, input.inputTo", function () {
 
-		var TValuesFrom = [];
-		var TValuesTo = [];
-		var currentTr = $(this).closest('tr');
+	/*// On récupère la valeur minimale de chacune des colonnes
+	// "window" rend les variables (minFrom, maxFrom, minTo) globales
+	window.minFrom = Math.min.apply(Math, TValuesFrom);
+	window.maxFrom = Math.max.apply(Math, TValuesFrom);
+	window.minTo = Math.min.apply(Math, TValuesTo);
+	window.maxTo = Math.max.apply(Math, TValuesTo);*/
 
-		// TValuesFrom - récupère toutes les valeurs "De"
-		var allInputsFrom = $(":input.inputFrom");
-		allInputsFrom.not(currentTr).each(function (index, input) {
-			if (input.value) {
-				TValuesFrom.push(parseFloat(input.value));
-			}
-		})
-
-		// TValuesTo - récupère toutes les valeurs "à"
-		var allInputsTo = $(":input.inputTo");
-		allInputsTo.not(currentTr).each(function (index, input) {
-			if (input.value) {
-				TValuesTo.push(parseFloat(input.value));
-			}
-		})
-
-		window.result = TValuesTo.reduce(function(result, field, index) {
-			result[TValuesFrom[index]] = field;
-			return result;
-		}, {})
-
-
-		// On récupère la valeur minimale de chacune des colonnes
-		// "window" rend les variables (minFrom, maxFrom, minTo) globales
-		window.minFrom = Math.min.apply(Math, TValuesFrom);
-		window.maxFrom = Math.max.apply(Math, TValuesFrom);
-		window.minTo = Math.min.apply(Math, TValuesTo);
-		window.maxTo = Math.max.apply(Math, TValuesTo);
-	});*/
-
-	/**
-	 * Vérification des tranches logiques au changement de valeur "à"
-	 */
-	/*$(document).on("change", "input.inputFrom", function () {
-
-		window.TErrorsFrom = [];
-		var currentInputFrom = parseFloat($(this).val());
-		var currentInputFromDiv = $(this);
-
-		console.log(result);
-
-		$.each(result, function(from, to) {
-			if (currentInputFrom >= from && currentInputFrom <= to) {
-				currentInputFromDiv.css("borderColor", "red");
-				TErrorsFrom.push('errorTrancheFrom');
-			}
-		});
-	})*/
 
 	/**
 	 * Vérification des tranches logiques au changement de valeur "à"
  	 */
-	$(document).on("change", "input.inputFrom, input.inputTo", function () {
+	$(document).on("change", "input", function () {
 
-		window.TErrorsFrom = [];
-		window.TErrorsTo = [];
 		var TValuesFrom = [];
 		var TValuesTo = [];
-		var currentTr = $(this).closest('tr');
+		window.TErrorsFrom = [];
+		window.TErrorsTo = [];
 
 		// TValuesFrom - récupère toutes les valeurs "De"
-		var allInputsFrom = $(":input.inputFrom");
-		allInputsFrom.not(currentTr).each(function (index, input) {
+		var allInputsFrom = $(":input.inputFrom").not(this);
+		allInputsFrom.each(function (index, input) {
 			if (input.value) {
 				TValuesFrom.push(parseFloat(input.value));
 			}
 		})
 
 		// TValuesTo - récupère toutes les valeurs "à"
-		var allInputsTo = $(":input.inputTo");
-		allInputsTo.not(currentTr).each(function (index, input) {
-			if (input.value) {
-				TValuesTo.push(parseFloat(input.value));
+		var allInputsTo = $(":input.inputTo").not(this);
+		allInputsTo.each(function (indexTo, inputTo) {
+			if (inputTo.value) {
+				TValuesTo.push(parseFloat(inputTo.value));
 			}
 		})
 
@@ -250,11 +200,6 @@ $(document).ready(function () {
 			}
 		});
 
-		/*
-		if (currentInputFrom >= maxTo && currentInputTo <= maxTo) {
-			currentInputToDiv.css("borderColor", "red");
-			TErrorsTo.push('errorTrancheTo');
-		}*/
 	})
 
 
@@ -280,12 +225,10 @@ $(document).ready(function () {
 		if (TErrorsFrom.length > 0) {
 			e.preventDefault();
 			setCommissionMessage("Saisie incorrecte - Chevauchement des tranches de remise", 'error');
-			TErrorsFrom.length = 0;
 		}
 		if (TErrorsTo.length > 0) {
 			e.preventDefault();
 			setCommissionMessage("Saisie incorrecte - Chevauchement des tranches de remise", 'error');
-			TErrorsTo.length = 0;
 		}
 
 		var allInputsLine = $('.easycommissionValues');
