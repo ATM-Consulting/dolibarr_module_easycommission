@@ -143,21 +143,23 @@ $(document).ready(function () {
 	/**
 	 * 	Vérification des tranches logiques au changement de valeur "De"
 	 */
-	$(document).one("focus", "input.inputFrom, input.inputTo", function () {
+	/*$(document).on("focus", "input.inputFrom, input.inputTo", function () {
 
 		var TValuesFrom = [];
 		var TValuesTo = [];
+		var currentTr = $(this).closest('tr');
 
 		// TValuesFrom - récupère toutes les valeurs "De"
 		var allInputsFrom = $(":input.inputFrom");
-		allInputsFrom.each(function (index, input) {
+		allInputsFrom.not(currentTr).each(function (index, input) {
 			if (input.value) {
 				TValuesFrom.push(parseFloat(input.value));
 			}
 		})
+
 		// TValuesTo - récupère toutes les valeurs "à"
 		var allInputsTo = $(":input.inputTo");
-		allInputsTo.each(function (index, input) {
+		allInputsTo.not(currentTr).each(function (index, input) {
 			if (input.value) {
 				TValuesTo.push(parseFloat(input.value));
 			}
@@ -175,16 +177,18 @@ $(document).ready(function () {
 		window.maxFrom = Math.max.apply(Math, TValuesFrom);
 		window.minTo = Math.min.apply(Math, TValuesTo);
 		window.maxTo = Math.max.apply(Math, TValuesTo);
-	});
+	});*/
 
 	/**
 	 * Vérification des tranches logiques au changement de valeur "à"
 	 */
-	$(document).on("change", "input.inputFrom", function () {
+	/*$(document).on("change", "input.inputFrom", function () {
 
 		window.TErrorsFrom = [];
 		var currentInputFrom = parseFloat($(this).val());
 		var currentInputFromDiv = $(this);
+
+		console.log(result);
 
 		$.each(result, function(from, to) {
 			if (currentInputFrom >= from && currentInputFrom <= to) {
@@ -192,22 +196,57 @@ $(document).ready(function () {
 				TErrorsFrom.push('errorTrancheFrom');
 			}
 		});
-	})
+	})*/
 
 	/**
 	 * Vérification des tranches logiques au changement de valeur "à"
  	 */
-	$(document).on("change", "input.inputTo", function () {
+	$(document).on("change", "input.inputFrom, input.inputTo", function () {
 
+		window.TErrorsFrom = [];
 		window.TErrorsTo = [];
+		var TValuesFrom = [];
+		var TValuesTo = [];
+		var currentTr = $(this).closest('tr');
 
-		var currentInputTo = parseFloat($(this).val());
-		var currentInputToDiv = $(this);
+		// TValuesFrom - récupère toutes les valeurs "De"
+		var allInputsFrom = $(":input.inputFrom");
+		allInputsFrom.not(currentTr).each(function (index, input) {
+			if (input.value) {
+				TValuesFrom.push(parseFloat(input.value));
+			}
+		})
+
+		// TValuesTo - récupère toutes les valeurs "à"
+		var allInputsTo = $(":input.inputTo");
+		allInputsTo.not(currentTr).each(function (index, input) {
+			if (input.value) {
+				TValuesTo.push(parseFloat(input.value));
+			}
+		})
+
+		var result = TValuesTo.reduce(function(result, field, index) {
+			result[TValuesFrom[index]] = field;
+			return result;
+		}, {})
+
+		if ($(this).hasClass('inputFrom')) {
+			var currentInputFrom = parseFloat($(this).val());
+			var currentInputFromDiv = $(this);
+		}
+		if ($(this).hasClass('inputTo')) {
+			var currentInputTo = parseFloat($(this).val());
+			var currentInputToDiv = $(this);
+		}
 
 		$.each(result, function(from, to) {
+			if (currentInputFrom >= from && currentInputFrom <= to) {
+				currentInputFromDiv.css("borderColor", "red");
+				TErrorsFrom.push('errorTrancheFrom');
+			}
 			if (currentInputTo >= from && currentInputTo <= to) {
 				currentInputToDiv.css("borderColor", "red");
-				TErrorsTo.push('errorTrancheFrom');
+				TErrorsTo.push('errorTrancheTo');
 			}
 		});
 
@@ -238,9 +277,15 @@ $(document).ready(function () {
 	 */
 	$(document).on("submit", "form.easycommissionForm", function (e) {
 
-		if (TErrorsFrom.length || TErrorsTo.length) {
+		if (TErrorsFrom.length > 0) {
 			e.preventDefault();
 			setCommissionMessage("Saisie incorrecte - Chevauchement des tranches de remise", 'error');
+			TErrorsFrom.length = 0;
+		}
+		if (TErrorsTo.length > 0) {
+			e.preventDefault();
+			setCommissionMessage("Saisie incorrecte - Chevauchement des tranches de remise", 'error');
+			TErrorsTo.length = 0;
 		}
 
 		var allInputsLine = $('.easycommissionValues');
