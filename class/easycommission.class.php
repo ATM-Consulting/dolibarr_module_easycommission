@@ -195,7 +195,7 @@ class easyCommission extends CommonObject
 
         global $langs;
         $out = '';
-
+c
         $out.= '<tr class="oddeven easycommissionValues" data-id='.$rowTable->rowid.'>';
         $out.= '<td class="maxwidth100 tddict valueInputFrom"><input class="inputFrom" style="width:100%" type="number" min="0" max="100" step="0.1" required name="TCommissionnement['.$rowTable->rowid.'][discountPercentageFrom]'.'" value="'.$rowTable->discountPercentageFrom.'"></td>';
         $out.= '<td class="maxwidth100 tddict" style="width: 20px">%</td>';
