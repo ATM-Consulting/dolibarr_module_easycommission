@@ -6,61 +6,91 @@
  *  \brief      Page to list easycommission report
  */
 
-require '../main.inc.php';
+// Load Dolibarr environment
+$res = 0;
+// Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
+if(! $res && ! empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+// Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
+$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+$tmp2 = realpath(__FILE__);
+$i = strlen($tmp) - 1;
+$j = strlen($tmp2) - 1;
+while($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
+    $i--;
+    $j--;
+}
+if(! $res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) $res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
+if(! $res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) $res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+// Try main.inc.php using relative path
+if(! $res && file_exists("../main.inc.php")) $res = @include "../main.inc.php";
+if(! $res && file_exists("../../main.inc.php")) $res = @include "../../main.inc.php";
+if(! $res && file_exists("../../../main.inc.php")) $res = @include "../../../main.inc.php";
+if(! $res) die("Include of main fails");
+
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/product.lib.php';
+require_once(__DIR__.'/class/easycommission.class.php');
 
 // Load translation files required by the page
-$langs->loadLangs(array('easycommission'));
+$langs->loadLangs(["easycommission", "other"]);
 
-$action				= GETPOST('action', 'alpha');
-$massaction			= GETPOST('massaction', 'alpha');
-$show_files			= GETPOST('show_files', 'int');
-$confirm			= GETPOST('confirm', 'alpha');
-$toselect 			= GETPOST('toselect', 'array');
-$id_rate_selected 	= GETPOST('id_rate', 'int');
-$sall				= trim((GETPOST('search_all', 'alphanohtml')!='')?GETPOST('search_all', 'alphanohtml'):GETPOST('sall', 'alphanohtml'));
-$search_date_sync	= GETPOST('search_date_sync', 'alpha');
-$search_rate		= GETPOST('search_rate', 'alpha');
-$search_code		= GETPOST('search_code', 'alpha');
-$multicurrency_code = GETPOST('multicurrency_code', 'alpha');
-$dateinput 			= GETPOST('dateinput', 'alpha');
-$rateinput 			= GETPOST('rateinput', 'int');
-$search_tobatch 	= GETPOST('search_tobatch', 'int');
-$optioncss 			= GETPOST('optioncss', 'alpha');
-$limit 				= GETPOST('limit', 'int')?GETPOST('limit', 'int') : $conf->liste_limit;
-$sortfield 			= GETPOST("sortfield", 'alpha');
-$sortorder 			= GETPOST("sortorder", 'alpha');
-$page 				= (GETPOST("page", 'int')?GETPOST("page", 'int'):0);
+$action = GETPOST('action', 'alpha');
+$massaction = GETPOST('massaction', 'alpha');
+$show_files = GETPOST('show_files', 'int');
+$confirm = GETPOST('confirm', 'alpha');
+$cancel = GETPOST('cancel', 'alpha');
+$toselect = GETPOST('toselect', 'array');
+$contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'easycommissionList';   // To manage different context of search
 
-if (empty($page) || $page == -1) { $page = 0; }     // If $page is not defined, or '' or -1
+$search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
+$search_invoice_end = dol_mktime(23, 59, 59, GETPOST('search_invoice_endmonth', 'int'), GETPOST('search_invoice_endday', 'int'), GETPOST('search_invoice_endyear', 'int'));
+
+$id = GETPOST('id', 'int');
+$backtopage = GETPOST('backtopage');
+$optioncss = GETPOST('optioncss', 'alpha');
+
+$fk_product = GETPOST('fk_product', 'int');
+$fk_company = GETPOST('fk_company', 'int');
+
+$searchCategoryProductOperator = GETPOST('searchCategoryProductOperator', 'int');
+$searchCategorySocieteOperator = GETPOST('searchCategorySocieteOperator', 'int');
+$TCategoryProduct = GETPOST('search_TCategoryProduct', 'array');
+$TCategoryCompany = GETPOST('search_TCategoryCompany', 'array');
+
+// Load variable for pagination
+$limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
+$sortfield = GETPOST('sortfield', 'alpha');
+$sortorder = GETPOST('sortorder', 'alpha');
+$page = GETPOST('page', 'int');
+if(empty($page) || $page == -1) {
+    $page = 0;
+}     // If $page is not defined, or '' or -1
 $offset = $limit * $page;
 $pageprev = $page - 1;
 $pagenext = $page + 1;
-if (! $sortfield) $sortfield="cr.date_sync";
-if (! $sortorder) $sortorder="ASC";
-
 
 // Initialize technical object to manage hooks. Note that conf->hooks_modules contains array of hooks
-
-$extrafields = new ExtraFields($db);
-$form=new Form($db);
-
-$hookmanager->initHooks(array('EditorRatelist', 'globallist'));
+$object = new EasyCommission($db);
+$form = new Form($db);
+$diroutputmassaction = $conf->easycommission->dir_output.'/temp/massgeneration/'.$user->id;
+$hookmanager->initHooks(array('easycommissionlist'));// Fetch optionals attributes and labels
 
 if (empty($action)) $action='list';
 
+
 // List of fields to search into when doing a "search in all"
 $fieldstosearchall = array(
-	'cr.date_sync'=>"date_sync",
-	'cr.rate'=>"rate",
-	'm.code'=>"code",
+
 );
 
 // Definition of fields for lists
 $arrayfields=array(
-	'cr.date_sync'=>array('label'=>$langs->trans("date_sync"), 'checked'=>1),
-	'cr.rate'=>array('label'=>$langs->trans("rate"), 'checked'=>1),
-	'm.code'=>array('label'=>$langs->trans("code"), 'checked'=>1),
+	'fa.datef'=>array('label'=>$langs->trans("date"), 'checked'=>1),
+	'det.total_ht'=>array('label'=>$langs->trans("HT"), 'checked'=>1),
+	'det.remise_percent'=>array('label'=>$langs->trans("percent"), 'checked'=>1),
 );
 
 
@@ -68,187 +98,98 @@ $object->fields = dol_sort_array($object->fields, 'position');
 $arrayfields = dol_sort_array($arrayfields, 'position');
 
 
-
 /*
  * Actions
  */
-if ($action == "create"){
-	if (!empty($rateinput)) {
-		$currencyRate_static = new CurrencyRate($db);
-		$currency_static = new MultiCurrency($db);
-		$fk_currency = $currency_static->getIdFromCode($db, $multicurrency_code);
 
-		$currencyRate_static->fk_multicurrency = $fk_currency;
-		$currencyRate_static->entity = $conf->entity;
-		$currencyRate_static->date_sync = $dateinput;
-		$currencyRate_static->rate = $rateinput;
-
-		$result = $currencyRate_static->create(intval($fk_currency));
-		if ($result) {
-			setEventMessage($langs->trans('successRateCreate', $multicurrency_code));
-		} else {
-			dol_syslog("currencyRate:createRate", LOG_WARNING);
-			setEventMessage($langs->trans('successRateCreate'));
-		}
-	} else {
-		setEventMessage($langs->trans('NoEmptyRate'), "errors");
-	}
-}
-
-
-if (GETPOST('cancel', 'alpha')) { $action='list'; $massaction=''; }
-if (! GETPOST('confirmmassaction', 'alpha') && $massaction != 'presend' && $massaction != 'confirm_presend') { $massaction = ''; }
+if (GETPOST('cancel', 'alpha')) { $action = 'list'; $massaction = ''; }
+if (!GETPOST('confirmmassaction', 'alpha') && $massaction != 'presend' && $massaction != 'confirm_presend') { $massaction = ''; }
 
 $parameters=array();
-$reshook=$hookmanager->executeHooks('doActions', $parameters, $object, $action);    // Note that $action and $object may have been modified by some hooks
+$reshook=$hookmanager->executeHooks('doActions',$parameters,$object,$action);    // Note that $action and $object may have been modified by some hooks
 if ($reshook < 0) setEventMessages($hookmanager->error, $hookmanager->errors, 'errors');
-if (empty($reshook))
-{
-	// Selection of new fields
-	include DOL_DOCUMENT_ROOT.'/core/actions_changeselectedfields.inc.php';
 
-	// Purge search criteria
-	if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')) // All tests are required to be compatible with all browsers
-	{
+if(empty($reshook)) {
+    // Selection of new fields
+    include DOL_DOCUMENT_ROOT.'/core/actions_changeselectedfields.inc.php';
+
+    // Purge search criteria
+    if(GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')) // All tests are required to be compatible with all browsers
+    {
 		$sall="";
-		$search_date_sync="";
-		$search_rate="";
-		$search_code="";
+		$search_invoice_start="";
+		$search_invoice_end="";
 		$search_array_options=array();
-	}
+    }
 
-	// Mass actions
-	$objectclass="CurrencyRate";
-	$uploaddir = $conf->multicurrency->multidir_output; // define only because core/actions_massactions.inc.php want it
+    // Mass actions
+	$objectclass="easycommission";
+	$uploaddir = $conf->easycommission->multidir_output; // define only because core/actions_massactions.inc.php want it
 	$permtoread = $user->admin;
 	$permtodelete = $user->admin;
 	include DOL_DOCUMENT_ROOT.'/core/actions_massactions.inc.php';
+
 }
 
 /*
  * View
  */
 
-$htmlother=new FormOther($db);
+$form=new Form($db);
+$now=dol_now();
 
-$title=$langs->trans("ReportEasyCommission");
+$help_url='';
+$title = $langs->trans("ReportEasyCommission");
 $page_name = "ReportEasyCommission";
 
-llxHeader('', $title, '', '');
+llxHeader('', $title, $helpurl);
+
 // Subheader
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1">'.$langs->trans("BackToModuleList").'</a>';
 print load_fiche_titre($langs->trans($page_name), $linkback);
 
-// Configuration header
-$head = multicurrencyAdminPrepareHead();
-dol_fiche_head($head, 'ratelist', $langs->trans("ModuleSetup"), -1, "multicurrency");
 
-// ACTION
-
-if ($action!= "updateRate" && $action!= "deleteRate" ) {
-	print '<table class="noborder centpercent">';
-	print '<tr class="liste_titre">';
-	print '<td>'.$langs->trans("FormCreateRate").'</td>'."\n";
-	print '</tr></table>';
-
-	$form = new Form($db);
-	print '<form action="' . $_SERVER["PHP_SELF"] . '" method="post" name="formulaire">';
-	print '<table><tr>';
-
-	print ' <td>' . $langs->trans('date') . '</td>';
-	print ' <td><input class="minwidth200" name="dateinput" value="' . dol_escape_htmltag($dateinput) . '" type="date"></td>';
-
-	print ' <td>' . $langs->trans('Codemulticurrency') . '</td>';
-	print '<td>' . $form->selectMultiCurrency((GETPOSTISSET('multicurrency_code') ? GETPOST('multicurrency_code', 'alpha') : $multicurrency_code), 'multicurrency_code', 0, " code != '".$conf->currency."'", true) . '</td>';
-
-	print ' <td>' . $langs->trans('rate') . '</td>';
-	print ' <td><input type="number" min ="0" step="any" class="minwidth200" name="rateinput" value="' . dol_escape_htmltag($rateinput) . '"></td>';
-
-	print '<td>';
-	print '<input type="hidden" name="action" value="create">';
-	print '<input type="submit" class="butAction" name="btnCreateCurrencyRate" value="' . $langs->trans('CreateRate') . '">';
-	print '</td>';
-
-	print '</tr></table>';
-	print '</form>';
-}
-
-if ($action == "updateRate"){
-	$current_rate = new CurrencyRate($db);
-	$current_rate->fetch(intval($id_rate_selected));
-
-	if ($current_rate) {
-		$curr = new MultiCurrency($db);
-		$resultcurrentCurrency =  $curr->fetch($current_rate->fk_multicurrency);
-
-		if ($resultcurrentCurrency){
-			$currency_code = $curr->code;
-		}else {
-			$currency_code = '';
-		}
-
-		print '<table class="noborder centpercent">';
-		print '<tr class="liste_titre">';
-		print '<td>' . $langs->trans("FormUpdateRate") . '</td>' . "\n";
-		print '</tr></table>';
-
-		$form = new Form($db);
-		print '<form action="' . $_SERVER["PHP_SELF"] . '" method="post" name="formulaire">';
-		print '<table><tr>';
-		print ' <td>' . $langs->trans('date') . '</td>';
-		print '<td><input class="minwidth200" name="dateinput" value="'. date('Y-m-d', dol_stringtotime($current_rate->date_sync)) .'" type="date"></td>';
-
-		print '<td>' . $langs->trans('Codemulticurrency') . '</td>';
-		print '<td>' . $form->selectMultiCurrency($currency_code, 'multicurrency_code', 0, " code != '".$conf->currency."'", true) . '</td>';
-
-		print '<td>' . $langs->trans('rate') . '</td>';
-		print '<td><input class="minwidth200" name="rateinput" value="' . dol_escape_htmltag($current_rate->rate) . '" type="text"></td>';
-
-		print '<td>';
-		print '<input type="hidden" name="action" value="update">';
-		print '<input type="hidden" name="id_rate" value="'.$current_rate->id.'">';
-		print '<input type="submit" class="butAction" name="btnupdateCurrencyRate" value="' . $langs->trans('UpdateRate') . '">';
-		print '<a href="'.$_SERVER["PHP_SELF"].'" class="butAction">' .$langs->trans('CancelUpdate') . '</a>';
-
-		print '</td>';
-		print '</tr></table>';
-		print '</form>';
-	}else {
-		dol_syslog("currency_rate:list:update", LOG_WARNING);
-	}
-}
-
-
-$sql = 'SELECT cr.rowid, cr.date_sync, cr.rate, cr.entity, m.code, m.name ';
+// Build and execute select
+// --------------------------------------------------------------------
+$sql = 'SELECT DISTINCT fa.rowid, fa.datef, det.total_ht, det.remise_percent ,pr.rowid prowid, pr.ref, s.rowid srowid, s.nom, u.rowid user_rowid, u.lastname user_name, ug.nom groupe';
 
 // Add fields from hooks
 $parameters=array();
 $reshook=$hookmanager->executeHooks('printFieldListSelect', $parameters);    // Note that $action and $object may have been modified by hook
 $sql.=$hookmanager->resPrint;
-$sql.= ' FROM '.MAIN_DB_PREFIX.'multicurrency_rate as cr ';
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."multicurrency AS m ON cr.fk_multicurrency = m.rowid";
-
+$sql.= ' FROM '.MAIN_DB_PREFIX.'facture fa ';
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."product pr ON pr.rowid = det.fk_product";
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe s on s.rowid = fa.fk_soc";
+$sql .=" LEFT JOIN ".MAIN_DB_PREFIX."categorie_product cp ON cp.fk_product = pr.rowid";
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe_commerciaux sc ON sc.fk_soc = s.rowid";
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
+$sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
 
 if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
 
-if ($search_date_sync)     $sql .= natural_search('cr.date_sync', $search_date_sync);
-if ($search_rate)   $sql .= natural_search('cr.rate', $search_rate);
-if ($search_code) $sql .= natural_search('m.code', $search_code);
+/*if ($search_date_invoice)  $sql .= natural_search('cr.date_invoice', $search_date_invoice);
+if ($search_rate)   $sql .= natural_search('cr.rate', $search_rate);*/
 
-$sql.= ' WHERE m.code != \''.$conf->currency. '\'';
+$sql.= " WHERE det.fk_product NOT IN (";
+$sql.= " SELECT cp.fk_product ";
+$sql.= " FROM ".MAIN_DB_PREFIX."categorie_product cp";
+$sql.= " WHERE cp.fk_categorie = ".$conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY;
+$sql.= ")";
 
 // Add where from hooks
 $parameters=array();
 $reshook=$hookmanager->executeHooks('printFieldListWhere', $parameters);    // Note that $action and $object may have been modified by hook
 $sql.=$hookmanager->resPrint;
-$sql.= " GROUP BY cr.rowid, cr.date_sync, cr.rate, m.code, cr.entity ";
 
 // Add fields from hooks
 $parameters=array();
 $reshook=$hookmanager->executeHooks('printFieldSelect', $parameters);    // Note that $action and $object may have been modified by hook
 $sql.=$hookmanager->resPrint;
 
-$sql.= $db->order($sortfield, $sortorder);
+//$sql.= $db->order($sortfield, $sortorder);
+$sql.= " ORDER BY det.rowid ASC";
 
 
 $nbtotalofrecords = '';
@@ -281,8 +222,6 @@ if ($resql)
 	if ($limit > 0 && $limit != $conf->liste_limit) $param.='&limit='.urlencode($limit);
 	if ($sall) $param.="&sall=".urlencode($sall);
 
-	if ($search_date_sync) $param="&search_date_sync=".urlencode($search_date_sync);
-	if ($search_rate) $param="&search_rate=".urlencode($search_rate);
 	if ($search_code != '') $param.="&search_code=".urlencode($search_code);
 
 	// Add $param from extra fields
@@ -303,7 +242,7 @@ if ($resql)
 	print '<input type="hidden" name="page" value="'.$page.'">';
 	print '<input type="hidden" name="type" value="'.$type.'">';
 
-	print_barre_liste($texte, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, 'title_currency.png', 0, $newcardbutton, '', $limit);
+	print_barre_liste($texte, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, '', 0, $newcardbutton, '', $limit);
 
 	include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
 
@@ -340,25 +279,19 @@ if ($resql)
 	print '<tr class="liste_titre_filter">';
 
 	// date
-	if (! empty($arrayfields['cr.date_sync']['checked']))
+	if (! empty($arrayfields['fa.datef']['checked']))
 	{
-		print '<td class="liste_titre" align="left">';
-		print '<input class="flat" type="text" name="search_date_sync" size="8" value="'.dol_escape_htmltag($search_date_sync).'">';
+	    print '<td class="liste_titre center">';
+		print '<div class="nowrap">';
+		print $langs->trans('From').' ';
+		print $form->selectDate($search_invoice_start ? $search_invoice_start : -1, 'search_invoice_start', 0, 0, 1);
+		print '</div>';
+		print '<div class="nowrap">';
+		print $langs->trans('to').' ';
+		print $form->selectDate($search_invoice_end ? $search_invoice_end : -1, 'search_invoice_end', 0, 0, 1);
+		print '</div>';
 		print '</td>';
-	}
-	// code
-	if (! empty($arrayfields['m.code']['checked']))
-	{
-		print '<td class="liste_titre" align="left">';
-		print '<input class="flat" type="text" name="search_code" size="12" value="'.dol_escape_htmltag($search_code).'">';
-		print '</td>';
-	}
-	// rate
-	if (! empty($arrayfields['cr.rate']['checked']))
-	{
-		print '<td class="liste_titre" align="left">';
-		print '<input class="flat" type="text" name="search_rate" size="8" value="'.dol_escape_htmltag($search_rate).'">';
-		print '</td>';
+
 	}
 
 	// Fields from hook
@@ -374,9 +307,7 @@ if ($resql)
 	print '</tr>';
 
 	print '<tr class="liste_titre">';
-	if (! empty($arrayfields['cr.date_sync']['checked']))  print_liste_field_titre($arrayfields['cr.date_sync']['label'], $_SERVER["PHP_SELF"], "cr.date_sync", "", $param, "", $sortfield, $sortorder);
-	if (! empty($arrayfields['m.code']['checked']))  print_liste_field_titre($arrayfields['m.code']['label'], $_SERVER["PHP_SELF"], "m.code", "", $param, "", $sortfield, $sortorder);
-	if (! empty($arrayfields['cr.rate']['checked']))  print_liste_field_titre($arrayfields['cr.rate']['label'], $_SERVER["PHP_SELF"], "cr.rate", "", $param, "", $sortfield, $sortorder);
+	if (! empty($arrayfields['fa.datef']['checked']))  print_liste_field_titre($arrayfields['fa.datef']['label'], $_SERVER["PHP_SELF"], "fa.datef", "", $param, "", $sortfield, $sortorder);
 
 	// Hook fields
 	$parameters=array('arrayfields'=>$arrayfields, 'param'=>$param, 'sortfield'=>$sortfield, 'sortorder'=>$sortorder);
@@ -394,30 +325,11 @@ if ($resql)
 
 		print '<tr class="oddeven">';
 
-		// date_sync
-		if (! empty($arrayfields['cr.date_sync']['checked']))
+		// date_invoice
+		if (! empty($arrayfields['fa.datef']['checked']))
 		{
 			print '<td class="tdoverflowmax200">';
-			print $obj->date_sync;
-			print "</td>\n";
-			if (! $i) $totalarray['nbfield']++;
-		}
-
-		// code
-		if (! empty($arrayfields['m.code']['checked']))
-		{
-			print '<td class="tdoverflowmax200">';
-			print $obj->code ." ". $obj->name;
-			print "</td>\n";
-
-			if (! $i) $totalarray['nbfield']++;
-		}
-
-		// rate
-		if (! empty($arrayfields['cr.rate']['checked']))
-		{
-			print '<td class="tdoverflowmax200">';
-			print $obj->rate;
+			print $obj->datef;
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 		}
@@ -458,3 +370,23 @@ else {
 
 llxFooter();
 $db->close();
+
+
+/**
+ *
+ *
+ *      1) $TLines = get_lines()
+ *          ==> SQL
+ *          ==> retourne toutes les lignes qui nous intéressent
+ *
+ *      2) $TDatas = get_com()
+ *
+ *      3) list($TCom, $TUserCom) = split_com($TDatas);
+ *
+ *      4) TRes = calcul_com(TCom, TUserCom);
+ *
+ *      5) Afficher tout le tableau avec les com
+ *
+ *
+ *
+ */

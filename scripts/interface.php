@@ -79,7 +79,7 @@ if (isset($action) && $action == 'removeLineToMatrix') {
 
 if (isset($action) && $action == 'getEasyCommissionMatrix') {
     $out = '';
-    $matrix = new easyCommission($db);
+    $matrix = new EasyCommission($db);
     $TCommission = $matrix->fetchByArray(0, array('fk_user'=> $userMatrix),false,false);
 
     if(empty($TCommission)) {

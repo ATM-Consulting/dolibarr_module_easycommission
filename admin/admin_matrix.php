@@ -155,7 +155,7 @@ print '<table class="noborder" width="100%">';
 _setupPrintTitle('EASYCOMMISSION_MATRIX_CONF_TITLE');
 
 
-$matrix = new easyCommission($db);
+$matrix = new EasyCommission($db);
 print $matrix->displayCommissionMatrix();
 
 

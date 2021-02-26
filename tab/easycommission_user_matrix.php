@@ -245,7 +245,7 @@ if($action == 'edit') {
 
     print '</table><br>';
 
-    $matrix = new easyCommission($db);
+    $matrix = new EasyCommission($db);
 
     if($object->conf->MATRIX_PERSONAL_VALUE == 'checked') {
         print $matrix->displayCommissionMatrix($object->id);
@@ -298,7 +298,7 @@ else {
 
     print '</div>';
 
-    $matrix = new easyCommission($db);
+    $matrix = new EasyCommission($db);
 
     if($object->conf->MATRIX_PERSONAL_VALUE == 'checked') {
         print $matrix->displayCommissionMatrix($object->id);
