@@ -40,4 +40,69 @@ class EasyCommissionTools
 		$this->db = $db;
 	}
 
+	/**
+	 * Retrieve all existing commissions on DB
+	 *
+	 * @return array $TResult
+	 */
+	public function getAllCommissions() {
+		global $db;
+		$sql = '';
+		$TResult = array();
+
+		$sql = "SELECT rowid, entity, discountPercentageFrom, discountPercentageTo, commissionPercentage, fk_user ";
+		$sql.= " FROM ".MAIN_DB_PREFIX."easycommission_matrix ";
+		$resql = $db->query($sql);
+		if ($resql)
+		{
+			while ($obj = $db->fetch_object($resql)) {
+				$TResult[] = $obj;
+			}
+		}
+
+		return $TResult;
+	}
+
+	public function split_com($TDatas) {
+
+		$TCom = $TUserCom = array();
+		foreach ($TDatas as $data) {
+			if (! empty ($data->fk_user)) {
+				$fk_user = $data->fk_user;
+				$TUserCom[$fk_user][] = $data;
+			}
+			else {
+				$TCom[] = $data;
+			}
+		}
+
+		return array($TCom, $TUserCom);
+	}
+
+	public function calcul_com($facdet, $TCom, $TUserCom) {
+
+		$TResult = array();
+
+		if (empty ($TUserCom)){
+			foreach ($TCom as $com) {
+				if ($facdet->remise_percent >= $com->discountPercentageFrom
+					&& $facdet->remise_percent <= $com->discountPercentageTo) {
+					$TResult['commission'] = (($com->commissionPercentage * $facdet->total_ht)/100);
+				}
+			}
+		}
+		else {
+			foreach ($TUserCom as $commercial => $userCom) {
+				if ($facdet->fk_user == $commercial) {
+					if ($facdet->remise_percent >= $userCom[$commercial]->discountPercentageFrom
+						&& $facdet->remise_percent <= $userCom[$commercial]->discountPercentageTo) {
+						$TResult['commission'] = (($userCom[$commercial]->commissionPercentage * $facdet->total_ht)/100);
+					}
+				}
+			}
+		}
+
+		return $TResult;
+	}
+
 }

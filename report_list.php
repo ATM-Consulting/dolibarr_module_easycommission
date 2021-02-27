@@ -33,32 +33,28 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/product.lib.php';
 require_once(__DIR__.'/class/easycommission.class.php');
+require_once(__DIR__.'/class/easycommissionTools.class.php');
 
 // Load translation files required by the page
 $langs->loadLangs(["easycommission", "other"]);
 
 $action = GETPOST('action', 'alpha');
-$massaction = GETPOST('massaction', 'alpha');
-$show_files = GETPOST('show_files', 'int');
 $confirm = GETPOST('confirm', 'alpha');
 $cancel = GETPOST('cancel', 'alpha');
 $toselect = GETPOST('toselect', 'array');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'easycommissionList';   // To manage different context of search
-
-$search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
-$search_invoice_end = dol_mktime(23, 59, 59, GETPOST('search_invoice_endmonth', 'int'), GETPOST('search_invoice_endday', 'int'), GETPOST('search_invoice_endyear', 'int'));
-
 $id = GETPOST('id', 'int');
 $backtopage = GETPOST('backtopage');
 $optioncss = GETPOST('optioncss', 'alpha');
-
 $fk_product = GETPOST('fk_product', 'int');
-$fk_company = GETPOST('fk_company', 'int');
+$search_sale = GETPOST('search_sale', 'int');
 
-$searchCategoryProductOperator = GETPOST('searchCategoryProductOperator', 'int');
-$searchCategorySocieteOperator = GETPOST('searchCategorySocieteOperator', 'int');
-$TCategoryProduct = GETPOST('search_TCategoryProduct', 'array');
-$TCategoryCompany = GETPOST('search_TCategoryCompany', 'array');
+$search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
+$dateStart = $search_invoice_start ? $search_invoice_start : '';
+
+$search_invoice_end = dol_mktime(23, 59, 59, GETPOST('search_invoice_endmonth', 'int'), GETPOST('search_invoice_endday', 'int'), GETPOST('search_invoice_endyear', 'int'));
+$dateEnd = $search_invoice_end ? $search_invoice_end : '';
+
 
 // Load variable for pagination
 $limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
@@ -75,7 +71,6 @@ $pagenext = $page + 1;
 // Initialize technical object to manage hooks. Note that conf->hooks_modules contains array of hooks
 $object = new EasyCommission($db);
 $form = new Form($db);
-$diroutputmassaction = $conf->easycommission->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array('easycommissionlist'));// Fetch optionals attributes and labels
 
 if (empty($action)) $action='list';
@@ -83,14 +78,19 @@ if (empty($action)) $action='list';
 
 // List of fields to search into when doing a "search in all"
 $fieldstosearchall = array(
-
+	'fa.datef'=>"date",
+	'fa.ref'=>"facref",
+	'det.total_ht'=>"HT",
+	'det.remise_percent'=>"percent"
 );
 
 // Definition of fields for lists
 $arrayfields=array(
+	'fa.fk_soc'=>array('label'=>$langs->trans("Client / Commercial"), 'checked'=>1),
+	'fa.ref'=>array('label'=>$langs->trans("Réf"), 'checked'=>1),
 	'fa.datef'=>array('label'=>$langs->trans("date"), 'checked'=>1),
 	'det.total_ht'=>array('label'=>$langs->trans("HT"), 'checked'=>1),
-	'det.remise_percent'=>array('label'=>$langs->trans("percent"), 'checked'=>1),
+	'det.remise_percent'=>array('label'=>$langs->trans("Remise"), 'checked'=>1),
 );
 
 
@@ -119,15 +119,9 @@ if(empty($reshook)) {
 		$sall="";
 		$search_invoice_start="";
 		$search_invoice_end="";
+		$search_sale = '';
 		$search_array_options=array();
     }
-
-    // Mass actions
-	$objectclass="easycommission";
-	$uploaddir = $conf->easycommission->multidir_output; // define only because core/actions_massactions.inc.php want it
-	$permtoread = $user->admin;
-	$permtodelete = $user->admin;
-	include DOL_DOCUMENT_ROOT.'/core/actions_massactions.inc.php';
 
 }
 
@@ -135,10 +129,11 @@ if(empty($reshook)) {
  * View
  */
 
-$form=new Form($db);
-$now=dol_now();
+$form = new Form($db);
+$formother = new FormOther($db);
+$now = dol_now();
 
-$help_url='';
+$help_url ='';
 $title = $langs->trans("ReportEasyCommission");
 $page_name = "ReportEasyCommission";
 
@@ -150,14 +145,15 @@ print load_fiche_titre($langs->trans($page_name), $linkback);
 
 
 // Build and execute select
+// Get all the facture lines corresponding to the conditions
 // --------------------------------------------------------------------
-$sql = 'SELECT DISTINCT fa.rowid, fa.datef, det.total_ht, det.remise_percent ,pr.rowid prowid, pr.ref, s.rowid srowid, s.nom, u.rowid user_rowid, u.lastname user_name, ug.nom groupe';
+$sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.total_ht, det.remise_percent ,pr.rowid prowid, pr.ref, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe";
 
 // Add fields from hooks
 $parameters=array();
 $reshook=$hookmanager->executeHooks('printFieldListSelect', $parameters);    // Note that $action and $object may have been modified by hook
 $sql.=$hookmanager->resPrint;
-$sql.= ' FROM '.MAIN_DB_PREFIX.'facture fa ';
+$sql.= " FROM ".MAIN_DB_PREFIX."facture fa ";
 $sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
 $sql .=" INNER JOIN ".MAIN_DB_PREFIX."product pr ON pr.rowid = det.fk_product";
 $sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe s on s.rowid = fa.fk_soc";
@@ -168,9 +164,6 @@ $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowi
 $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
 
 if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
-
-/*if ($search_date_invoice)  $sql .= natural_search('cr.date_invoice', $search_date_invoice);
-if ($search_rate)   $sql .= natural_search('cr.rate', $search_rate);*/
 
 $sql.= " WHERE det.fk_product NOT IN (";
 $sql.= " SELECT cp.fk_product ";
@@ -188,9 +181,13 @@ $parameters=array();
 $reshook=$hookmanager->executeHooks('printFieldSelect', $parameters);    // Note that $action and $object may have been modified by hook
 $sql.=$hookmanager->resPrint;
 
-//$sql.= $db->order($sortfield, $sortorder);
-$sql.= " ORDER BY det.rowid ASC";
+$sql.= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
 
+if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d', $search_invoice_start)."' and '".date('Y-m-d', $search_invoice_end)."'";
+if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
+if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d', $search_invoice_end)."'";
+
+$sql.= " ORDER BY det.rowid ASC, ugu.fk_user";
 
 $nbtotalofrecords = '';
 if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST))
@@ -205,11 +202,16 @@ if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST))
 			$offset = 0;
 		}
 	}else {
-		setEventMessage($langs->trans('No_record_on_multicurrency_rate'), 'warnings');
+		setEventMessage($langs->trans('Error'), 'warnings');
 	}
 }
 
 $sql.= $db->plimit($limit + 1, $offset);
+
+$EasyCom = new EasyCommissionTools($db);
+$TDatas = $EasyCom->getAllCommissions();
+
+list($TCom, $TUserCom) = $EasyCom->split_com($TDatas);
 
 $resql = $db->query($sql);
 if ($resql)
@@ -222,29 +224,20 @@ if ($resql)
 	if ($limit > 0 && $limit != $conf->liste_limit) $param.='&limit='.urlencode($limit);
 	if ($sall) $param.="&sall=".urlencode($sall);
 
-	if ($search_code != '') $param.="&search_code=".urlencode($search_code);
-
 	// Add $param from extra fields
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
 
-
-	if ($user->admin) $arrayofmassactions['predelete']=$langs->trans("Delete");
-	if (in_array($massaction, array('presend','predelete'))) $arrayofmassactions=array();
-	$massactionbutton=$form->selectMassAction('', $arrayofmassactions);
-
-	print '<form action="'.$_SERVER["PHP_SELF"].'" method="post" name="formulaire">';
+	print '<form method="POST" id="searchFormList" action="'.$_SERVER["PHP_SELF"].'">'."\n";
 	if ($optioncss != '') print '<input type="hidden" name="optioncss" value="'.$optioncss.'">';
-	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="token" value="'.newToken().'">'; // Dolibarr V12
 	print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
 	print '<input type="hidden" name="action" value="list">';
+	print '<input type="hidden" name="fk_product" value="'.$fk_product.'">';
 	print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
 	print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 	print '<input type="hidden" name="page" value="'.$page.'">';
-	print '<input type="hidden" name="type" value="'.$type.'">';
+	print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
 
-	print_barre_liste($texte, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, '', 0, $newcardbutton, '', $limit);
-
-	include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
 
 	if ($sall)
 	{
@@ -254,7 +247,6 @@ if ($resql)
 
 	// Filter on categories
 	$moreforfilter='';
-
 
 	$parameters=array();
 	$reshook=$hookmanager->executeHooks('printFieldPreListTitle', $parameters);    // Note that $action and $object may have been modified by hook
@@ -270,7 +262,6 @@ if ($resql)
 
 	$varpage=empty($contextpage)?$_SERVER["PHP_SELF"]:$contextpage;
 	$selectedfields=$form->multiSelectArrayWithCheckbox('selectedfields', $arrayfields, $varpage);	// This also change content of $arrayfields
-	if ($massactionbutton) $selectedfields.=$form->showCheckAddButtons('checkforselect', 1);
 
 	print '<div class="div-table-responsive">';
 	print '<table class="tagtable liste'.($moreforfilter?" listwithfilterbefore":"").'">'."\n";
@@ -278,20 +269,28 @@ if ($resql)
 	// Lines with input filters
 	print '<tr class="liste_titre_filter">';
 
-	// date
+	// Invoice facturation Date
 	if (! empty($arrayfields['fa.datef']['checked']))
 	{
-	    print '<td class="liste_titre center">';
+	    print '<td class="liste_titre" align="left">';
 		print '<div class="nowrap">';
 		print $langs->trans('From').' ';
 		print $form->selectDate($search_invoice_start ? $search_invoice_start : -1, 'search_invoice_start', 0, 0, 1);
-		print '</div>';
-		print '<div class="nowrap">';
 		print $langs->trans('to').' ';
 		print $form->selectDate($search_invoice_end ? $search_invoice_end : -1, 'search_invoice_end', 0, 0, 1);
 		print '</div>';
 		print '</td>';
+	}
 
+	// If the user can view prospects other than his'
+	if ($user->rights->societe->client->voir)
+	{
+		$langs->load("commercial");
+		print '<td class="liste_titre" align="left">';
+		print '<div class="divsearchfield">';
+		print $langs->trans('EasyCommercial').': ';
+		print $formother->select_salesrepresentatives($search_sale, 'search_sale', $user, 0, 1, 'maxwidth200');
+		print '</div>';
 	}
 
 	// Fields from hook
@@ -299,7 +298,7 @@ if ($resql)
 	$reshook=$hookmanager->executeHooks('printFieldListOption', $parameters);    // Note that $action and $object may have been modified by hook
 	print $hookmanager->resPrint;
 
-	print '<td class="liste_titre" align="middle">';
+	print '<td class="liste_titre" align="right">';
 	$searchpicto=$form->showFilterButtons();
 	print $searchpicto;
 	print '</td>';
@@ -307,49 +306,84 @@ if ($resql)
 	print '</tr>';
 
 	print '<tr class="liste_titre">';
-	if (! empty($arrayfields['fa.datef']['checked']))  print_liste_field_titre($arrayfields['fa.datef']['label'], $_SERVER["PHP_SELF"], "fa.datef", "", $param, "", $sortfield, $sortorder);
+	if (! empty($arrayfields['fa.fk_soc']['checked']))  print_liste_field_titre($arrayfields['fa.fk_soc']['label'], $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
+	if (! empty($arrayfields['fa.ref']['checked']))  print_liste_field_titre($arrayfields['fa.ref']['label'], $_SERVER["PHP_SELF"], "fa.ref", "", $param, "", $sortfield, $sortorder);
+	if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "", $sortfield, $sortorder);
+	if (! empty($arrayfields['det.remise_percent']['checked']))  print_liste_field_titre($arrayfields['det.remise_percent']['label'], $_SERVER["PHP_SELF"], "det.remise_percent", "", $param, "", $sortfield, $sortorder);
+	print_liste_field_titre('Commission');
 
 	// Hook fields
 	$parameters=array('arrayfields'=>$arrayfields, 'param'=>$param, 'sortfield'=>$sortfield, 'sortorder'=>$sortorder);
 	$reshook=$hookmanager->executeHooks('printFieldListTitle', $parameters);    // Note that $action and $object may have been modified by hook
 	print $hookmanager->resPrint;
 
-	print_liste_field_titre($selectedfields, $_SERVER["PHP_SELF"], "", '', '', 'align="center"', $sortfield, $sortorder, 'maxwidthsearch ');
+	print_liste_field_titre($selectedfields, $_SERVER["PHP_SELF"], "", '', '', 'align="right"', $sortfield, $sortorder, 'maxwidthsearch ');
 	print "</tr>\n";
 
 	$i = 0;
 	$totalarray=array();
+
 	while ($i < min($num, $limit))
 	{
 		$obj = $db->fetch_object($resql);
 
+		$TRes = $EasyCom->calcul_com($obj, $TCom, $TUserCom);
+
 		print '<tr class="oddeven">';
 
-		// date_invoice
-		if (! empty($arrayfields['fa.datef']['checked']))
+		// Societe
+		if (! empty($arrayfields['fa.fk_soc']['checked']))
 		{
+			$soc = new Societe($db);
+			$soc->fetch($obj->srowid);
+			$user->fetch($obj->fk_user);
+
 			print '<td class="tdoverflowmax200">';
-			print $obj->datef;
+			print $soc->getNomUrl(1, '', '', 1, '');
+			print '</br>';
+			print $user->getNomUrl(1, '', '', 1);
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 		}
+
+		// Fac REF
+		if (! empty($arrayfields['fa.ref']['checked']))
+		{
+			print '<td class="tdoverflowmax200">';
+			print $obj->facref;
+			print "</td>\n";
+			if (! $i) $totalarray['nbfield']++;
+		}
+
+		// Facdet total HT
+		if (! empty($arrayfields['det.total_ht']['checked']))
+		{
+			print '<td class="tdoverflowmax200">';
+			print round($obj->total_ht, 2);
+			print "</td>\n";
+			if (! $i) $totalarray['nbfield']++;
+		}
+
+		// Facdet remise
+		if (! empty($arrayfields['det.remise_percent']['checked']))
+		{
+			print '<td class="tdoverflowmax200">';
+			print $obj->remise_percent;
+			print "</td>\n";
+			if (! $i) $totalarray['nbfield']++;
+		}
+
+		// Facdet Commercial Commission
+		print '<td class="tdoverflowmax200">';
+		print round($TRes['commission'], 2);
+		print "</td>\n";
+		if (! $i) $totalarray['nbfield']++;
 
 		// Fields from hook
 		$parameters=array('arrayfields'=>$arrayfields, 'obj'=>$obj);
 		$reshook=$hookmanager->executeHooks('printFieldListValue', $parameters);    // Note that $action and $object may have been modified by hook
 		print $hookmanager->resPrint;
 
-		// Action
-		print '<td class="nowrap" align="center">';
-		if ($massactionbutton || $massaction)   // If we are in select mode (massactionbutton defined) or if we have already selected and sent an action ($massaction) defined
-		{
-			$selected=0;
-			if (in_array($obj->rowid, $arrayofselected)) $selected=1;
-			print '<a href="'.$_SERVER["PHP_SELF"].'?action=updateRate&amp;id_rate='.$obj->rowid.'" class="like-link " style="margin-right:15px;important">' . img_picto('edit', 'edit') . '</a>';
-			print '<a href="'.$_SERVER["PHP_SELF"].'?action=deleteRate&amp;id_rate='.$obj->rowid.'" class="like-link" style="margin-right:45px;important">' . img_picto('delete', 'delete') . '</a>';
-			print '<input id="cb'.$obj->rowid.'" class="flat checkforselect" type="checkbox" name="toselect[]" value="'.$obj->rowid.'"'.($selected?' checked="checked"':'').'>';
-		}
-		print '</td>';
 		if (! $i) $totalarray['nbfield']++;
 
 		print "</tr>\n";
@@ -370,23 +404,3 @@ else {
 
 llxFooter();
 $db->close();
-
-
-/**
- *
- *
- *      1) $TLines = get_lines()
- *          ==> SQL
- *          ==> retourne toutes les lignes qui nous intéressent
- *
- *      2) $TDatas = get_com()
- *
- *      3) list($TCom, $TUserCom) = split_com($TDatas);
- *
- *      4) TRes = calcul_com(TCom, TUserCom);
- *
- *      5) Afficher tout le tableau avec les com
- *
- *
- *
- */
