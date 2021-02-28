@@ -22,6 +22,7 @@ ModuleEasyCommissionName = EasyCommission
 # Module description 'ModuleEasyCommissionDesc'
 ModuleEasyCommissionDesc = Calcul des commissions des commerciaux par tranche de remise
 ReportEasyCommission = Commissionnement
+BackToFactureList = Retour accueil facturation
 EasyCommercial = Commercial
 
 #

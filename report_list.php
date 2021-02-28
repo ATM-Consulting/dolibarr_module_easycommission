@@ -46,7 +46,6 @@ $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'ea
 $id = GETPOST('id', 'int');
 $backtopage = GETPOST('backtopage');
 $optioncss = GETPOST('optioncss', 'alpha');
-$fk_product = GETPOST('fk_product', 'int');
 $search_sale = GETPOST('search_sale', 'int');
 
 $search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
@@ -78,6 +77,7 @@ if (empty($action)) $action='list';
 
 // List of fields to search into when doing a "search in all"
 $fieldstosearchall = array(
+	'fa.fk_soc'=>"soc",
 	'fa.datef'=>"date",
 	'fa.ref'=>"facref",
 	'det.total_ht'=>"HT",
@@ -123,6 +123,9 @@ if(empty($reshook)) {
 		$search_array_options=array();
     }
 
+	$objectclass="EasyCom";
+	$uploaddir = $conf->easycommission->multidir_output; // define only because core/actions_massactions.inc.php want it
+	include DOL_DOCUMENT_ROOT.'/core/actions_massactions.inc.php';
 }
 
 /*
@@ -133,21 +136,21 @@ $form = new Form($db);
 $formother = new FormOther($db);
 $now = dol_now();
 
-$help_url ='';
+$help_url = '';
 $title = $langs->trans("ReportEasyCommission");
 $page_name = "ReportEasyCommission";
 
-llxHeader('', $title, $helpurl);
+llxHeader('', $title, $help_url);
 
 // Subheader
-$linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1">'.$langs->trans("BackToModuleList").'</a>';
+$linkback = '<a href="'.DOL_URL_ROOT.'/compta/index.php">'.$langs->trans("BackToFactureList").'</a>';
 print load_fiche_titre($langs->trans($page_name), $linkback);
 
 
 // Build and execute select
 // Get all the facture lines corresponding to the conditions
 // --------------------------------------------------------------------
-$sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.total_ht, det.remise_percent ,pr.rowid prowid, pr.ref, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe";
+$sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.rowid detrowid, det.fk_facture fk_facture, det.total_ht, det.remise_percent ,pr.rowid prowid, pr.ref, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe";
 
 // Add fields from hooks
 $parameters=array();
@@ -183,6 +186,8 @@ $sql.=$hookmanager->resPrint;
 
 $sql.= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
 
+if ( ! empty($search_sale)) $sql .= " AND ugu.fk_user = ".$search_sale;
+
 if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d', $search_invoice_start)."' and '".date('Y-m-d', $search_invoice_end)."'";
 if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
 if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d', $search_invoice_end)."'";
@@ -217,9 +222,9 @@ $resql = $db->query($sql);
 if ($resql)
 {
 	$num = $db->num_rows($resql);
-	$arrayofselected=is_array($toselect)?$toselect:array();
+	$arrayofselected = is_array($toselect) ? $toselect : array();
 
-	$param='';
+	$param = '';
 	if (! empty($contextpage) && $contextpage != $_SERVER["PHP_SELF"]) $param.='&contextpage='.urlencode($contextpage);
 	if ($limit > 0 && $limit != $conf->liste_limit) $param.='&limit='.urlencode($limit);
 	if ($sall) $param.="&sall=".urlencode($sall);
@@ -227,17 +232,20 @@ if ($resql)
 	// Add $param from extra fields
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
 
+
 	print '<form method="POST" id="searchFormList" action="'.$_SERVER["PHP_SELF"].'">'."\n";
 	if ($optioncss != '') print '<input type="hidden" name="optioncss" value="'.$optioncss.'">';
 	print '<input type="hidden" name="token" value="'.newToken().'">'; // Dolibarr V12
 	print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
 	print '<input type="hidden" name="action" value="list">';
-	print '<input type="hidden" name="fk_product" value="'.$fk_product.'">';
 	print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
 	print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 	print '<input type="hidden" name="page" value="'.$page.'">';
 	print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
 
+	print_barre_liste('', $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, '', 0, '', '', $limit);
+
+	include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
 
 	if ($sall)
 	{
@@ -262,6 +270,7 @@ if ($resql)
 
 	$varpage=empty($contextpage)?$_SERVER["PHP_SELF"]:$contextpage;
 	$selectedfields=$form->multiSelectArrayWithCheckbox('selectedfields', $arrayfields, $varpage);	// This also change content of $arrayfields
+	if ($massactionbutton) $selectedfields.=$form->showCheckAddButtons('checkforselect', 1);
 
 	print '<div class="div-table-responsive">';
 	print '<table class="tagtable liste'.($moreforfilter?" listwithfilterbefore":"").'">'."\n";
@@ -273,25 +282,28 @@ if ($resql)
 	if (! empty($arrayfields['fa.datef']['checked']))
 	{
 	    print '<td class="liste_titre" align="left">';
-		print '<div class="nowrap">';
 		print $langs->trans('From').' ';
 		print $form->selectDate($search_invoice_start ? $search_invoice_start : -1, 'search_invoice_start', 0, 0, 1);
 		print $langs->trans('to').' ';
 		print $form->selectDate($search_invoice_end ? $search_invoice_end : -1, 'search_invoice_end', 0, 0, 1);
-		print '</div>';
 		print '</td>';
 	}
 
 	// If the user can view prospects other than his'
-	if ($user->rights->societe->client->voir)
-	{
-		$langs->load("commercial");
-		print '<td class="liste_titre" align="left">';
-		print '<div class="divsearchfield">';
-		print $langs->trans('EasyCommercial').': ';
-		print $formother->select_salesrepresentatives($search_sale, 'search_sale', $user, 0, 1, 'maxwidth200');
-		print '</div>';
+	if (! empty($arrayfields['fa.fk_soc']['checked'])) {
+		if ($user->rights->societe->client->voir) {
+			$langs->load("commercial");
+			print '<td class="liste_titre" align="left">';
+			print $langs->trans('EasyCommercial') . ': ';
+			print $formother->select_salesrepresentatives($search_sale, 'search_sale', $user, 0, 1, 'maxwidth200');
+			print '</td>';
+		}
 	}
+
+	if (! empty($arrayfields['fa.ref']['checked']))	print '<td class="liste_titre" align="left"></td>';
+	if (! empty($arrayfields['det.total_ht']['checked']))	print '<td class="liste_titre" align="left"></td>';
+	if (! empty($arrayfields['det.remise_percent']['checked']))	print '<td class="liste_titre" align="left"></td>';
+	if (empty($arrayfields['fa.datef']['checked']))	print '<td class="liste_titre" align="right"></td>';
 
 	// Fields from hook
 	$parameters=array('arrayfields'=>$arrayfields);
@@ -368,14 +380,15 @@ if ($resql)
 		if (! empty($arrayfields['det.remise_percent']['checked']))
 		{
 			print '<td class="tdoverflowmax200">';
-			print $obj->remise_percent;
+			print $obj->remise_percent.'%';
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 		}
 
 		// Facdet Commercial Commission
 		print '<td class="tdoverflowmax200">';
-		print round($TRes['commission'], 2);
+		if ( ! $TRes['missingInfo']) print round($TRes['commission'], 2);
+		else print $TRes['missingInfo'];
 		print "</td>\n";
 		if (! $i) $totalarray['nbfield']++;
 
@@ -383,6 +396,18 @@ if ($resql)
 		$parameters=array('arrayfields'=>$arrayfields, 'obj'=>$obj);
 		$reshook=$hookmanager->executeHooks('printFieldListValue', $parameters);    // Note that $action and $object may have been modified by hook
 		print $hookmanager->resPrint;
+
+		// Action
+		print '<td class="nowrap" align="center">';
+		if ($massactionbutton || $massaction)   // If we are in select mode (massactionbutton defined) or if we have already selected and sent an action ($massaction) defined
+		{
+			$selected=0;
+			if (in_array($obj->rowid, $arrayofselected)) $selected=1;
+			print '<a href="'.$_SERVER["PHP_SELF"].'?action=updateRate&amp;id_rate='.$obj->rowid.'" class="like-link " style="margin-right:15px;important">' . img_picto('edit', 'edit') . '</a>';
+			print '<a href="'.$_SERVER["PHP_SELF"].'?action=deleteRate&amp;id_rate='.$obj->rowid.'" class="like-link" style="margin-right:45px;important">' . img_picto('delete', 'delete') . '</a>';
+			print '<input id="cb'.$obj->rowid.'" class="flat checkforselect" type="checkbox" name="toselect[]" value="'.$obj->rowid.'"'.($selected?' checked="checked"':'').'>';
+		}
+		print '</td>';
 
 		if (! $i) $totalarray['nbfield']++;
 

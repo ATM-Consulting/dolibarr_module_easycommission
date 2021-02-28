@@ -80,15 +80,17 @@ class EasyCommissionTools
 	}
 
 	public function calcul_com($facdet, $TCom, $TUserCom) {
-
+		global $langs;
 		$TResult = array();
 
-		if (empty ($TUserCom)){
-			foreach ($TCom as $com) {
-				if ($facdet->remise_percent >= $com->discountPercentageFrom
-					&& $facdet->remise_percent <= $com->discountPercentageTo) {
-					$TResult['commission'] = (($com->commissionPercentage * $facdet->total_ht)/100);
+		if (empty($TUserCom)) {
+			foreach ($TCom as $com => $globalCom) {
+				if ($facdet->remise_percent >= $globalCom->discountPercentageFrom
+					&& $facdet->remise_percent <= $globalCom->discountPercentageTo) {
+					$TResult['commission'] = (($globalCom->commissionPercentage * $facdet->total_ht)/100);
+					break;
 				}
+				else $TResult['missingInfo'] = $langs->trans('Matrice globale incomplète');
 			}
 		}
 		else {
@@ -96,7 +98,17 @@ class EasyCommissionTools
 				if ($facdet->fk_user == $commercial) {
 					if ($facdet->remise_percent >= $userCom[$commercial]->discountPercentageFrom
 						&& $facdet->remise_percent <= $userCom[$commercial]->discountPercentageTo) {
-						$TResult['commission'] = (($userCom[$commercial]->commissionPercentage * $facdet->total_ht)/100);
+						$TResult['commission'] = (($userCom[$commercial]->commissionPercentage * $facdet->total_ht) / 100);
+					} else $TResult['missingInfo'] = $langs->trans('Matrice utilisateur incomplète');
+				}
+				else {
+					foreach ($TCom as $globalCom) {
+						if ($facdet->remise_percent >= $globalCom->discountPercentageFrom
+							&& $facdet->remise_percent <= $globalCom->discountPercentageTo) {
+							$TResult['commission'] = (($globalCom->commissionPercentage * $facdet->total_ht)/100);
+							break;
+						}
+						else $TResult['missingInfo'] = $langs->trans('Matrice globale incomplète');
 					}
 				}
 			}
