@@ -364,8 +364,8 @@ if ($resql)
 	    if (! empty($arrayfields['fa.fk_soc']['checked']))  print_liste_field_titre('EasyCommercial', $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
 	    print '<td class="liste_titre" align="right"></td>';
 	    print '<td class="liste_titre" align="right"></td>';
-	    print '<td class="liste_titre" align="right"></td>';
 	    if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "align='right'", $sortfield, $sortorder);
+	    print '<td class="liste_titre" align="right"></td>';
 	    print_liste_field_titre('Commission', '', '', '', '', "align='right'");
     }
 
@@ -398,7 +398,7 @@ if ($resql)
 			$user->fetch($obj->fk_user);
 
 			print '<td class="tdoverflowmax200">';
-			print $soc->getNomUrl(1, '', '', 1, '');
+			if (! empty($search_sale)) print $soc->getNomUrl(1, '', '', 1, '');
 			print '</br>';
 			print $user->getNomUrl(1, '', '', 1);
 			print "</td>\n";
@@ -416,7 +416,7 @@ if ($resql)
             $facturestatic->total_ttc = $obj->total_ttc;
 
 			print '<td class="tdoverflowmax200">';
-			print $facturestatic->getNomUrl(1);
+			if (! empty($search_sale)) print $facturestatic->getNomUrl(1);
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 		}
@@ -431,7 +431,7 @@ if ($resql)
             $productstatic->status_buy = $obj->productbuy;
 
 			print '<td class="tdoverflowmax200">';
-			print $productstatic->getNomUrl(1);
+			if (! empty($search_sale)) print $productstatic->getNomUrl(1);
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 		}
@@ -440,7 +440,12 @@ if ($resql)
 		if (! empty($arrayfields['det.total_ht']['checked']))
 		{
 			print '<td class="tdoverflowmax200" align="right">';
-			print round($obj->total_ht, 2);
+			if (! empty($search_sale)) {
+			    print round($obj->total_ht, 2);
+            }
+			else {
+			    print round($obj->sumht, 2);
+            }
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 			if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'det.total_ht';
@@ -451,7 +456,7 @@ if ($resql)
 		if (! empty($arrayfields['det.remise_percent']['checked']))
 		{
 			print '<td class="tdoverflowmax200" align="right">';
-			print $obj->remise_percent.'%';
+			if (! empty($search_sale)) print $obj->remise_percent.'%';
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 			if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'det.remise_percent';
@@ -461,8 +466,15 @@ if ($resql)
 
 		// Facdet Commercial Commission
 		print '<td class="tdoverflowmax200" align="right">';
-		if ( ! $TRes['missingInfo']) print round($TRes['commission'], 2);
-		else print $TRes['missingInfo'];
+		if (! empty($search_sale)){
+		    if ( ! $TRes['missingInfo']) print round($TRes['commission'], 2);
+		    else print $TRes['missingInfo'];
+        }
+		else {
+		    if ( ! $TRes['missingInfo']) print round($TRes['commission'], 2);
+		    else print $TRes['missingInfo'];
+        }
+
 		print "</td>\n";
 		if (! $i) $totalarray['nbfield']++;
 		if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'Commission';

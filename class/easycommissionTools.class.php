@@ -137,7 +137,7 @@ class EasyCommissionTools
 	    global $conf;
 	    $sql = '';
 
-	    $sql = "SELECT u.rowid user_rowid, ugu.fk_user, ug.nom groupe, SUM(det.total_ht)";
+	    $sql = "SELECT u.rowid user_rowid, ugu.fk_user, ug.nom groupe, SUM(det.total_ht) sumht";
 
 	    $sql .= " FROM ".MAIN_DB_PREFIX."facture fa ";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
