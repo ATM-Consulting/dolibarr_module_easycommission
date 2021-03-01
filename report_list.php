@@ -32,6 +32,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/product.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 require_once(__DIR__.'/class/easycommission.class.php');
 require_once(__DIR__.'/class/easycommissionTools.class.php');
 
@@ -48,21 +49,27 @@ $backtopage = GETPOST('backtopage');
 $optioncss = GETPOST('optioncss', 'alpha');
 $search_sale = GETPOST('search_sale', 'int');
 
-$search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
-$dateStart = $search_invoice_start ? $search_invoice_start : '';
+$now = dol_now();
+$prevMonthDateStart = date('Y-m-d H:i:s', mktime(0 , 0, 0, date("m")-1,1, date("Y")));
+$nbDaysInPrevMonth = date("t", strtotime($prevMonthDateStart));
+$prevMonthDateEnd = date('Y-m-d H:i:s', mktime(0 , 0, 0, date("m")-1, $nbDaysInPrevMonth, date("Y")));
 
-$search_invoice_end = dol_mktime(23, 59, 59, GETPOST('search_invoice_endmonth', 'int'), GETPOST('search_invoice_endday', 'int'), GETPOST('search_invoice_endyear', 'int'));
-$dateEnd = $search_invoice_end ? $search_invoice_end : '';
+$search_invoice_start = GETPOST('search_fac_date_start', 'int');
+if(empty($search_invoice_start)) $search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
 
+$search_invoice_end = GETPOST('search_fac_date_end', 'int');
+if(empty($search_invoice_end)) $search_invoice_end = dol_mktime(23, 59, 59, GETPOST('search_invoice_endmonth', 'int'), GETPOST('search_invoice_endday', 'int'), GETPOST('search_invoice_endyear', 'int'));
+
+$dateStart = $search_invoice_start ? GETPOST($search_invoice_start, 'alpha') : GETPOST($prevMonthDateStart, 'alpha');
+$dateEnd= $search_invoice_end ? GETPOST($search_invoice_end, 'alpha') : GETPOST($prevMonthDateEnd, 'alpha');
 
 // Load variable for pagination
 $limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
 $sortfield = GETPOST('sortfield', 'alpha');
 $sortorder = GETPOST('sortorder', 'alpha');
 $page = GETPOST('page', 'int');
-if(empty($page) || $page == -1) {
-    $page = 0;
-}     // If $page is not defined, or '' or -1
+
+if(empty($page) || $page == -1) { $page = 0; }     // If $page is not defined, or '' or -1
 $offset = $limit * $page;
 $pageprev = $page - 1;
 $pagenext = $page + 1;
@@ -80,8 +87,9 @@ $fieldstosearchall = array(
 	'fa.fk_soc'=>"soc",
 	'fa.datef'=>"date",
 	'fa.ref'=>"facref",
-	'det.total_ht'=>"HT",
-	'det.remise_percent'=>"percent"
+	'det.total_ht'=>"TotalHT",
+	'det.remise_percent'=>"percent",
+	'det.fk_product'=>"product"
 );
 
 // Definition of fields for lists
@@ -89,8 +97,9 @@ $arrayfields=array(
 	'fa.fk_soc'=>array('label'=>$langs->trans("Client / Commercial"), 'checked'=>1),
 	'fa.ref'=>array('label'=>$langs->trans("Réf"), 'checked'=>1),
 	'fa.datef'=>array('label'=>$langs->trans("date"), 'checked'=>1),
-	'det.total_ht'=>array('label'=>$langs->trans("HT"), 'checked'=>1),
+	'det.total_ht'=>array('label'=>$langs->trans("Total HT"), 'checked'=>1),
 	'det.remise_percent'=>array('label'=>$langs->trans("Remise"), 'checked'=>1),
+	'det.fk_product'=>array('label'=>$langs->trans("Product"), 'checked'=>1),
 );
 
 
@@ -134,9 +143,10 @@ if(empty($reshook)) {
 
 $form = new Form($db);
 $formother = new FormOther($db);
-$now = dol_now();
+$facturestatic = new Facture($db);
+$productstatic = new Product($db);
+$EasyCom = new EasyCommissionTools($db);
 
-$help_url = '';
 $title = $langs->trans("ReportEasyCommission");
 $page_name = "ReportEasyCommission";
 
@@ -146,53 +156,72 @@ llxHeader('', $title, $help_url);
 $linkback = '<a href="'.DOL_URL_ROOT.'/compta/index.php">'.$langs->trans("BackToFactureList").'</a>';
 print load_fiche_titre($langs->trans($page_name), $linkback);
 
-
 // Build and execute select
 // Get all the facture lines corresponding to the conditions
 // --------------------------------------------------------------------
-$sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.rowid detrowid, det.fk_facture fk_facture, det.total_ht, det.remise_percent ,pr.rowid prowid, pr.ref, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe";
+if ( ! empty($search_sale)) {
+    $sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.rowid detrowid, det.fk_product detproduct, det.fk_facture fk_facture, det.total_ht, det.remise_percent,
+    pr.rowid prowid, pr.ref productref, pr.label productlabel, pr.tosell productsell, pr.tobuy productbuy, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe";
 
-// Add fields from hooks
-$parameters=array();
-$reshook=$hookmanager->executeHooks('printFieldListSelect', $parameters);    // Note that $action and $object may have been modified by hook
-$sql.=$hookmanager->resPrint;
-$sql.= " FROM ".MAIN_DB_PREFIX."facture fa ";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."product pr ON pr.rowid = det.fk_product";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe s on s.rowid = fa.fk_soc";
-$sql .=" LEFT JOIN ".MAIN_DB_PREFIX."categorie_product cp ON cp.fk_product = pr.rowid";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe_commerciaux sc ON sc.fk_soc = s.rowid";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
-$sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
+    // Add fields from hooks
+    $parameters=array();
+    $reshook=$hookmanager->executeHooks('printFieldListSelect', $parameters);    // Note that $action and $object may have been modified by hook
+    $sql.=$hookmanager->resPrint;
+    $sql.= " FROM ".MAIN_DB_PREFIX."facture fa ";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."product pr ON pr.rowid = det.fk_product";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe s on s.rowid = fa.fk_soc";
+    $sql .=" LEFT JOIN ".MAIN_DB_PREFIX."categorie_product cp ON cp.fk_product = pr.rowid";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe_commerciaux sc ON sc.fk_soc = s.rowid";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
 
-if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
+    if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
 
-$sql.= " WHERE det.fk_product NOT IN (";
-$sql.= " SELECT cp.fk_product ";
-$sql.= " FROM ".MAIN_DB_PREFIX."categorie_product cp";
-$sql.= " WHERE cp.fk_categorie = ".$conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY;
-$sql.= ")";
+    $sql.= " WHERE det.fk_product NOT IN (";
+    $sql.= " SELECT cp.fk_product ";
+    $sql.= " FROM ".MAIN_DB_PREFIX."categorie_product cp";
+    $sql.= " WHERE cp.fk_categorie = ".$conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY;
+    $sql.= ")";
 
-// Add where from hooks
-$parameters=array();
-$reshook=$hookmanager->executeHooks('printFieldListWhere', $parameters);    // Note that $action and $object may have been modified by hook
-$sql.=$hookmanager->resPrint;
+    // Add where from hooks
+    $parameters=array();
+    $reshook=$hookmanager->executeHooks('printFieldListWhere', $parameters);    // Note that $action and $object may have been modified by hook
+    $sql.=$hookmanager->resPrint;
 
-// Add fields from hooks
-$parameters=array();
-$reshook=$hookmanager->executeHooks('printFieldSelect', $parameters);    // Note that $action and $object may have been modified by hook
-$sql.=$hookmanager->resPrint;
+    // Add fields from hooks
+    $parameters=array();
+    $reshook=$hookmanager->executeHooks('printFieldSelect', $parameters);    // Note that $action and $object may have been modified by hook
+    $sql.=$hookmanager->resPrint;
 
-$sql.= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
+    $sql.= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
 
-if ( ! empty($search_sale)) $sql .= " AND ugu.fk_user = ".$search_sale;
+    $sql .= " AND ugu.fk_user = ".$search_sale;
 
-if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d', $search_invoice_start)."' and '".date('Y-m-d', $search_invoice_end)."'";
-if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
-if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d', $search_invoice_end)."'";
+    if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) {
+        $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
+    } else $sql .= " AND fa.datef between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
 
-$sql.= " ORDER BY det.rowid ASC, ugu.fk_user";
+    if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
+    if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d H:i:s', $search_invoice_end)."'";
+
+    //$sql.= " ORDER BY det.rowid ASC";
+    $sql.=$db->order($sortfield,$sortorder);
+
+} else {
+    $sql = $EasyCom->getUserTotaux();
+
+    if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) {
+        $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
+    } else $sql .= " AND fa.datef between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
+
+    if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
+    if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d H:i:s', $search_invoice_end)."'";
+
+    $sql .= " GROUP BY u.rowid";
+
+}
 
 $nbtotalofrecords = '';
 if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST))
@@ -213,7 +242,6 @@ if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST))
 
 $sql.= $db->plimit($limit + 1, $offset);
 
-$EasyCom = new EasyCommissionTools($db);
 $TDatas = $EasyCom->getAllCommissions();
 
 list($TCom, $TUserCom) = $EasyCom->split_com($TDatas);
@@ -229,6 +257,9 @@ if ($resql)
 	if ($limit > 0 && $limit != $conf->liste_limit) $param.='&limit='.urlencode($limit);
 	if ($sall) $param.="&sall=".urlencode($sall);
 
+	if ($search_invoice_start || $prevMonthDateStart) $param.="&search_fac_date_start=".urlencode($search_invoice_start);
+	if ($search_invoice_end || $prevMonthDateEnd) $param.="&search_fac_date_end=".urlencode($search_invoice_end);
+	if ($search_sale != '') $param.="&search_sale=".urlencode($search_sale);
 	// Add $param from extra fields
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
 
@@ -283,9 +314,9 @@ if ($resql)
 	{
 	    print '<td class="liste_titre" align="left">';
 		print $langs->trans('From').' ';
-		print $form->selectDate($search_invoice_start ? $search_invoice_start : -1, 'search_invoice_start', 0, 0, 1);
+		print $form->selectDate($search_invoice_start ? $search_invoice_start : $prevMonthDateStart, 'search_invoice_start', 0, 0, 1);
 		print $langs->trans('to').' ';
-		print $form->selectDate($search_invoice_end ? $search_invoice_end : -1, 'search_invoice_end', 0, 0, 1);
+		print $form->selectDate($search_invoice_end ? $search_invoice_end : $prevMonthDateEnd, 'search_invoice_end', 0, 0, 1);
 		print '</td>';
 	}
 
@@ -300,10 +331,13 @@ if ($resql)
 		}
 	}
 
-	if (! empty($arrayfields['fa.ref']['checked']))	print '<td class="liste_titre" align="left"></td>';
-	if (! empty($arrayfields['det.total_ht']['checked']))	print '<td class="liste_titre" align="left"></td>';
-	if (! empty($arrayfields['det.remise_percent']['checked']))	print '<td class="liste_titre" align="left"></td>';
-	if (empty($arrayfields['fa.datef']['checked']))	print '<td class="liste_titre" align="right"></td>';
+
+	    if (! empty($arrayfields['fa.ref']['checked']))	print '<td class="liste_titre" align="left"></td>';
+        if (! empty($arrayfields['det.total_ht']['checked'])) print '<td class="liste_titre" align="left"></td>';
+        if (! empty($arrayfields['det.remise_percent']['checked']))	print '<td class="liste_titre" align="left"></td>';
+        if (! empty($arrayfields['det.fk_product']['checked']))	print '<td class="liste_titre" align="left"></td>';
+        if (empty($arrayfields['fa.datef']['checked']))	print '<td class="liste_titre" align="right"></td>';
+
 
 	// Fields from hook
 	$parameters=array('arrayfields'=>$arrayfields);
@@ -318,11 +352,23 @@ if ($resql)
 	print '</tr>';
 
 	print '<tr class="liste_titre">';
-	if (! empty($arrayfields['fa.fk_soc']['checked']))  print_liste_field_titre($arrayfields['fa.fk_soc']['label'], $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
-	if (! empty($arrayfields['fa.ref']['checked']))  print_liste_field_titre($arrayfields['fa.ref']['label'], $_SERVER["PHP_SELF"], "fa.ref", "", $param, "", $sortfield, $sortorder);
-	if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "", $sortfield, $sortorder);
-	if (! empty($arrayfields['det.remise_percent']['checked']))  print_liste_field_titre($arrayfields['det.remise_percent']['label'], $_SERVER["PHP_SELF"], "det.remise_percent", "", $param, "", $sortfield, $sortorder);
-	print_liste_field_titre('Commission');
+	if ( ! empty($search_sale)) {
+	    if (! empty($arrayfields['fa.fk_soc']['checked']))  print_liste_field_titre($arrayfields['fa.fk_soc']['label'], $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
+        if (! empty($arrayfields['fa.ref']['checked']))  print_liste_field_titre($arrayfields['fa.ref']['label'], $_SERVER["PHP_SELF"], "fa.ref", "", $param, "", $sortfield, $sortorder);
+        if (! empty($arrayfields['det.fk_product']['checked']))  print_liste_field_titre($arrayfields['det.fk_product']['label'], $_SERVER["PHP_SELF"], "det.fk_product", "", $param, "", $sortfield, $sortorder);
+        if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "align='right'", $sortfield, $sortorder);
+        if (! empty($arrayfields['det.remise_percent']['checked']))  print_liste_field_titre($arrayfields['det.remise_percent']['label'], $_SERVER["PHP_SELF"], "det.remise_percent", "", $param, "align='right'", $sortfield, $sortorder);
+        print_liste_field_titre('Commission', '', '', '', '', "align='right'");
+    }
+	else {
+	    if (! empty($arrayfields['fa.fk_soc']['checked']))  print_liste_field_titre('EasyCommercial', $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
+	    print '<td class="liste_titre" align="right"></td>';
+	    print '<td class="liste_titre" align="right"></td>';
+	    print '<td class="liste_titre" align="right"></td>';
+	    if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "align='right'", $sortfield, $sortorder);
+	    print_liste_field_titre('Commission', '', '', '', '', "align='right'");
+    }
+
 
 	// Hook fields
 	$parameters=array('arrayfields'=>$arrayfields, 'param'=>$param, 'sortfield'=>$sortfield, 'sortorder'=>$sortorder);
@@ -334,6 +380,7 @@ if ($resql)
 
 	$i = 0;
 	$totalarray=array();
+	$TSociete = array();
 
 	while ($i < min($num, $limit))
 	{
@@ -361,8 +408,30 @@ if ($resql)
 		// Fac REF
 		if (! empty($arrayfields['fa.ref']['checked']))
 		{
+		    $facturestatic->id = $obj->facrowid;
+		    $facturestatic->ref = $obj->facref;
+			$facturestatic->ref_client = $obj->ref_client;
+            $facturestatic->total_ht = $obj->total_ht;
+            $facturestatic->total_tva = $obj->total_vat;
+            $facturestatic->total_ttc = $obj->total_ttc;
+
 			print '<td class="tdoverflowmax200">';
-			print $obj->facref;
+			print $facturestatic->getNomUrl(1);
+			print "</td>\n";
+			if (! $i) $totalarray['nbfield']++;
+		}
+
+		// Facdet product
+		if (! empty($arrayfields['det.fk_product']['checked']))
+		{
+		    $productstatic->id = $obj->detproduct;
+		    $productstatic->ref = $obj->productref;
+		    $productstatic->label = $obj->productlabel;
+            $productstatic->status = $obj->productsell;
+            $productstatic->status_buy = $obj->productbuy;
+
+			print '<td class="tdoverflowmax200">';
+			print $productstatic->getNomUrl(1);
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
 		}
@@ -370,27 +439,34 @@ if ($resql)
 		// Facdet total HT
 		if (! empty($arrayfields['det.total_ht']['checked']))
 		{
-			print '<td class="tdoverflowmax200">';
+			print '<td class="tdoverflowmax200" align="right">';
 			print round($obj->total_ht, 2);
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
+			if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'det.total_ht';
+			$totalarray['val']['det.total_ht'] += $obj->total_ht;
 		}
 
 		// Facdet remise
 		if (! empty($arrayfields['det.remise_percent']['checked']))
 		{
-			print '<td class="tdoverflowmax200">';
+			print '<td class="tdoverflowmax200" align="right">';
 			print $obj->remise_percent.'%';
 			print "</td>\n";
 			if (! $i) $totalarray['nbfield']++;
+			if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'det.remise_percent';
+			$totalarray['val']['det.remise_percent'] += $obj->remise_percent;
+
 		}
 
 		// Facdet Commercial Commission
-		print '<td class="tdoverflowmax200">';
+		print '<td class="tdoverflowmax200" align="right">';
 		if ( ! $TRes['missingInfo']) print round($TRes['commission'], 2);
 		else print $TRes['missingInfo'];
 		print "</td>\n";
 		if (! $i) $totalarray['nbfield']++;
+		if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'Commission';
+		$totalarray['val']['Commission'] += round($TRes['commission'], 2);
 
 		// Fields from hook
 		$parameters=array('arrayfields'=>$arrayfields, 'obj'=>$obj);
@@ -414,6 +490,9 @@ if ($resql)
 		print "</tr>\n";
 		$i++;
 	}
+
+	// Show total line
+    include DOL_DOCUMENT_ROOT.'/core/tpl/list_print_total.tpl.php';
 
 	$db->free($resql);
 
