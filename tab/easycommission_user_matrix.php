@@ -95,34 +95,74 @@ if(empty($reshook)) {
                 $tabparam["MATRIX_PERSONAL_VALUE"] = '';
             }
 
-            $TCommissionnement = GETPOST('TCommissionnement', 'array');
+			$msg = '';
+			$errorMsg = '';
+			$TCommissionnement = GETPOST('TCommissionnement', 'array');
 
-            foreach($TCommissionnement as $fk_commission => $commissionnement) {
+			foreach($TCommissionnement as $fk_commission => $commissionnement){
 
-                $easyCommission = new EasyCommission($db);
-                $easyCommission->fetch($fk_commission);
+				foreach($TCommissionnement as $fk2 => $com2) {
+					if ($fk_commission == $fk2) continue;
+					else {
+						if (($com2['discountPercentageFrom'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageFrom'] <= $commissionnement['discountPercentageTo'])
+							|| ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
+						{
+							// On sort des deux foreach
+							header("Location: ".$_SERVER["PHP_SELF"]."?action=edit&id=".$id);
+							setEventMessage($langs->trans('notCorrectTrancheMatrix'), 'errors');
+							exit;
+						}
+					}
+				}
 
-                $easyCommission->discountPercentageFrom = $commissionnement['discountPercentageFrom'];
-                $easyCommission->discountPercentageTo = $commissionnement['discountPercentageTo'];
-                $easyCommission->commissionPercentage = $commissionnement['commissionPercentage'];
-                $easyCommission->fk_user = $object->id;
+				$easyCommission = new EasyCommission($db);
+				$easyCommission->fetch($fk_commission);
 
-                if(! empty($easyCommission->id)) {
-                    $res = $easyCommission->update($user);
-                    if($res > 0) {
-                        $msg = $langs->trans('SetupSaved');
-                    }
-                }
-                else {
-                    $easyCommission->create($user);
-                }
-            }
+				$easyCommission->discountPercentageFrom = floatval($commissionnement['discountPercentageFrom']);
+				$easyCommission->discountPercentageTo = floatval($commissionnement['discountPercentageTo']);
+				$easyCommission->commissionPercentage = floatval($commissionnement['commissionPercentage']);
 
-            setEventMessage($msg);
+				if ((! is_numeric($commissionnement['discountPercentageFrom'])) || (! is_numeric($commissionnement['discountPercentageTo'])) || (! is_numeric($commissionnement['commissionPercentage']))) {
+					$errorMsg = $langs->trans('notNumericValueMatrix');
+					break;
+				}
+				if (empty($easyCommission->discountPercentageFrom) && ($easyCommission->discountPercentageFrom != 0) ||
+					empty($easyCommission->discountPercentageTo) && ($easyCommission->discountPercentageFrom != 0)||
+					empty($easyCommission->commissionPercentage) && ($easyCommission->discountPercentageFrom != 0))
+				{
+					$errorMsg = $langs->trans('emptyValueMatrix');
+					break;
+				}
+				if ($easyCommission->discountPercentageTo < $easyCommission->discountPercentageFrom) {
+					$errorMsg = $langs->trans('easycommissionMatrixWrongDeltaValue');
+					break;
+				}
+				if (($easyCommission->discountPercentageFrom < 0) || ($easyCommission->discountPercentageTo < 0) || ($easyCommission->commissionPercentage < 0)) {
+					$errorMsg = $langs->trans('easycommissionMatrixUnderZeroValue');
+					break;
+				}
+				if (($easyCommission->discountPercentageFrom > 100) || ($easyCommission->discountPercentageTo > 100) || ($easyCommission->commissionPercentage > 100)) {
+					$errorMsg = $langs->trans('easycommissionMatrixOver100Value');
+					break;
+				}
+
+				if(! empty($easyCommission->id)){
+					$res = $easyCommission->update($user);
+					if($res > 0){
+						$msg = $langs->trans('SetupSaved');
+					}
+				} else {
+					$easyCommission->create($user);
+				}
+			}
+
+			$msgToDisplay = ! empty($errorMsg) ? $errorMsg : $msg;
+			$typeOfMsgToDisplay = ! empty($errorMsg) ? 'errors' : 'mesgs';
+			setEventMessage($msgToDisplay, $typeOfMsgToDisplay);
 
             $result = dol_set_user_param($db, $conf, $object, $tabparam);
 
-            header('Location: '.$_SERVER["PHP_SELF"].'?id='.$id);
+            header('Location: '.$_SERVER["PHP_SELF"].'?action=edit&id='.$id);
             exit;
         }
     }
@@ -308,8 +348,8 @@ else {
     }
 
     print '<script type="text/javascript">
-        $(document).ready(function() {      
-            if ($("#check_MATRIX_PERSONAL_VALUE").prop("disabled")) { 
+        $(document).ready(function() {
+            if ($("#check_MATRIX_PERSONAL_VALUE").prop("disabled")) {
                 $("input[type=number]").attr(\'disabled\', \'disabled\');
                 $("span.easycommissionaddbtn").closest("a").remove();
                 $("span.easycommissionrmvbtn").remove();

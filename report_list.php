@@ -40,12 +40,10 @@ require_once(__DIR__.'/class/easycommissionTools.class.php');
 $langs->loadLangs(["easycommission", "other"]);
 
 $action = GETPOST('action', 'alpha');
-$confirm = GETPOST('confirm', 'alpha');
-$cancel = GETPOST('cancel', 'alpha');
 $toselect = GETPOST('toselect', 'array');
+$cancel     = GETPOST('cancel', 'alpha');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'easycommissionList';   // To manage different context of search
 $id = GETPOST('id', 'int');
-$backtopage = GETPOST('backtopage');
 $optioncss = GETPOST('optioncss', 'alpha');
 $search_sale = GETPOST('search_sale', 'int');
 
@@ -60,6 +58,7 @@ if(empty($search_invoice_start)) $search_invoice_start = dol_mktime(0, 0, 0, GET
 $search_invoice_end = GETPOST('search_fac_date_end', 'int');
 if(empty($search_invoice_end)) $search_invoice_end = dol_mktime(23, 59, 59, GETPOST('search_invoice_endmonth', 'int'), GETPOST('search_invoice_endday', 'int'), GETPOST('search_invoice_endyear', 'int'));
 
+// Par défaut date de début au premier jour du mois précédent et date de fin au dernier jour du mois précédent
 $dateStart = $search_invoice_start ? GETPOST($search_invoice_start, 'alpha') : GETPOST($prevMonthDateStart, 'alpha');
 $dateEnd= $search_invoice_end ? GETPOST($search_invoice_end, 'alpha') : GETPOST($prevMonthDateEnd, 'alpha');
 
@@ -94,10 +93,10 @@ $fieldstosearchall = array(
 
 // Definition of fields for lists
 $arrayfields=array(
-	'fa.ref'=>array('label'=>$langs->trans("Réf"), 'checked'=>1),
-	'det.total_ht'=>array('label'=>$langs->trans("Total HT"), 'checked'=>1),
-	'det.remise_percent'=>array('label'=>$langs->trans("Remise"), 'checked'=>1),
-	'det.fk_product'=>array('label'=>$langs->trans("Product"), 'checked'=>1),
+	'fa.ref'=>array('label'=>$langs->trans("EasyComRef"), 'checked'=>1),
+	'det.total_ht'=>array('label'=>$langs->trans("EasyComTotalHT"), 'checked'=>1),
+	'det.remise_percent'=>array('label'=>$langs->trans("EasyComRemise"), 'checked'=>1),
+	'det.fk_product'=>array('label'=>$langs->trans("EasyComProduct"), 'checked'=>1),
 );
 
 
@@ -143,19 +142,17 @@ $form = new Form($db);
 $formother = new FormOther($db);
 $facturestatic = new Facture($db);
 $productstatic = new Product($db);
-$EasyCom = new EasyCommissionTools($db);
 
 $title = $langs->trans("ReportEasyCommission");
 $page_name = "ReportEasyCommission";
 
-llxHeader('', $title, $help_url);
+llxHeader('', $title);
 
 // Subheader
-$linkback = '<a href="'.DOL_URL_ROOT.'/compta/index.php">'.$langs->trans("BackToFactureList").'</a>';
-print load_fiche_titre($langs->trans($page_name), $linkback);
+print load_fiche_titre($langs->trans($page_name));
 
 // Build and execute select
-// Get all the facture lines corresponding to the conditions
+// Two conditions : if we select a commercial or not
 // --------------------------------------------------------------------
 if ( ! empty($search_sale)) {
     $sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.rowid detrowid, det.fk_product detproduct, det.fk_facture fk_facture, det.total_ht, det.remise_percent,
@@ -207,6 +204,7 @@ if ( ! empty($search_sale)) {
     $sql.=$db->order($sortfield,$sortorder);
 
 } else {
+	// One line to display the totals HT and Commissions for one commercial
     $sql = EasyCommissionTools::getUsersTotaux();
     $sqlCount = EasyCommissionTools::countUsers();
 
@@ -239,7 +237,8 @@ if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST))
             $nbtotalofrecords = $objCount->nb;
         }
         else $nbtotalofrecords = $db->num_rows($result);
-		if (($page * $limit) > $nbtotalofrecords)	// if total resultset is smaller then paging size (filtering), goto and load page 0
+
+        if (($page * $limit) > $nbtotalofrecords)	// if total resultset is smaller then paging size (filtering), goto and load page 0
 		{
 			$page = 0;
 			$offset = 0;
@@ -251,7 +250,9 @@ if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST))
 
 if (! empty($search_sale)) $sql.= $db->plimit($limit + 1, $offset);
 
-
+/*
+ * Récupération du tableau de toutes les commissions confondues (globale + overload des utilisateurs)
+ */
 $TDatas = EasyCommissionTools::getAllCommissions();
 
 list($TCom, $TUserCom) = EasyCommissionTools::split_com($TDatas);
@@ -262,6 +263,8 @@ if (! empty($search_sale)) {
     $resql = $db->query($sql);
 
     $TUsersTotaux = array();
+
+    // On construit le tableau des totaux par utilisateur
     while ($obj = $db->fetch_object($resql)) {
         $TUsersTotaux[$obj->fk_user]['total_ht']+= $obj->total_ht;
         $TUsersTotaux[$obj->fk_user]['commission']+= EasyCommissionTools::calcul_com($obj, $TCom, $TUserCom, true);
@@ -369,12 +372,12 @@ if ($resql)
 
 	print '<tr class="liste_titre">';
 	if ( ! empty($search_sale)) {
-	    print_liste_field_titre('Client / Commercial', $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
+	    print_liste_field_titre('EasyComSocAndCommercial', $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
         if (! empty($arrayfields['fa.ref']['checked']))  print_liste_field_titre($arrayfields['fa.ref']['label'], $_SERVER["PHP_SELF"], "fa.ref", "", $param, "", $sortfield, $sortorder);
         if (! empty($arrayfields['det.fk_product']['checked']))  print_liste_field_titre($arrayfields['det.fk_product']['label'], $_SERVER["PHP_SELF"], "det.fk_product", "", $param, "", $sortfield, $sortorder);
         if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "align='right'", $sortfield, $sortorder);
         if (! empty($arrayfields['det.remise_percent']['checked']))  print_liste_field_titre($arrayfields['det.remise_percent']['label'], $_SERVER["PHP_SELF"], "det.remise_percent", "", $param, "align='right'", $sortfield, $sortorder);
-        print_liste_field_titre('Commission', '', '', '', '', "align='right'");
+        print_liste_field_titre('EasyCommissionTitle', '', '', '', '', "align='right'");
     }
 	else {
 	    print_liste_field_titre('EasyCommercial', $_SERVER["PHP_SELF"], "fa.fk_soc", "", $param, "", $sortfield, $sortorder);
@@ -382,7 +385,7 @@ if ($resql)
         if (! empty($arrayfields['det.fk_product']['checked']))  print_liste_field_titre('', $_SERVER["PHP_SELF"], "", "", "", "", "", "");
         if (! empty($arrayfields['det.remise_percent']['checked']))  print_liste_field_titre("", $_SERVER["PHP_SELF"], "", "", "", "align='right'", "", "");
 	    if (! empty($arrayfields['det.total_ht']['checked']))  print_liste_field_titre($arrayfields['det.total_ht']['label'], $_SERVER["PHP_SELF"], "det.total_ht", "", $param, "align='right'", $sortfield, $sortorder);
-	    print_liste_field_titre('Commission', '', '', '', '', "align='right'");
+	    print_liste_field_titre('EasyCommissionTitle', '', '', '', '', "align='right'");
     }
 
 
@@ -398,9 +401,11 @@ if ($resql)
 	$totalarray=array();
 
 	if (empty($search_sale)) {
-		    EasyCommissionTools::displayDatasForTotaux($TUsersTotaux, $i, $arrayfields, $totalarray);
+			// Affichage des lignes de totaux HT et Commissions par utilisateur
+		    EasyCommissionTools::displayTotauxByCommercial($TUsersTotaux, $i, $arrayfields, $totalarray);
         }
 		else {
+			// Affichage du détail des lignes de facture pour le commercial sélectionné
             while($i < min($num, $limit)) {
                 $obj = $db->fetch_object($resql);
 

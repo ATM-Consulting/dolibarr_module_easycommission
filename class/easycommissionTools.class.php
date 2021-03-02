@@ -18,9 +18,9 @@
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/commonobject.class.php';
 /**
- * \file        class/EasyCommission.class.php
+ * \file        class/EasyCommissionTools.class.php
  * \ingroup     easycommission
- * \brief       This file is a CRUD class file for EasyCommission (Create/Read/Update/Delete)
+ * \brief       This file is a tools class file for EasyCommission
  */
 class EasyCommissionTools
 {
@@ -200,7 +200,7 @@ class EasyCommissionTools
      * @param $arrayfields
      * @param $totalarray
      */
-	public static function displayDatasForTotaux($TUsersTotaux, $i, $arrayfields, &$totalarray) {
+	public static function displayTotauxByCommercial($TUsersTotaux, $i, $arrayfields, &$totalarray) {
 	    global $db;
 
 	    foreach($TUsersTotaux as $fk_user => $userTotaux) {
@@ -255,7 +255,7 @@ class EasyCommissionTools
             print "</td>\n";
             if (! $i) $totalarray['nbfield']++;
             if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'Commission';
-            $totalarray['val']['Commission'] += round($userTotaux['commission'], 1);
+            $totalarray['val']['Commission'] += round($userTotaux['commission'], 2);
 
             // Action
             print '<td class="nowrap" align="center">';

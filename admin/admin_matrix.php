@@ -86,7 +86,9 @@ if($action == 'save_matrix'){
                 if (($com2['discountPercentageFrom'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageFrom'] <= $commissionnement['discountPercentageTo'])
                     || ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
                 {
-
+					$errorMsg = $langs->trans('notCorrectTrancheMatrix');
+					// On sort des deux foreach
+					break 2;
                 }
             }
         }
@@ -142,7 +144,7 @@ if($action == 'save_matrix'){
  * View
  */
 
-llxHeader('', $langs->trans("EasyCommissionSetup"), $help_url);
+llxHeader('', $langs->trans("EasyCommissionSetup"));
 
 
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1">'.$langs->trans("BackToModuleList").'</a>';
