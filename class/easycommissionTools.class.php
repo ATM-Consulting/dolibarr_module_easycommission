@@ -45,7 +45,7 @@ class EasyCommissionTools
 	 *
 	 * @return array $TResult
 	 */
-	public function getAllCommissions() {
+	public static function getAllCommissions() {
 		global $db;
 		$sql = '';
 		$TResult = array();
@@ -63,7 +63,11 @@ class EasyCommissionTools
 		return $TResult;
 	}
 
-	public function split_com($TDatas) {
+    /**
+     * @param $TDatas
+     * @return array[]
+     */
+	public static function split_com($TDatas) {
 
 		$TCom = $TUserCom = array();
 		foreach ($TDatas as $data) {
@@ -80,25 +84,23 @@ class EasyCommissionTools
 	}
 
     /**
-     * @param FactureLigne $facdet
-     * @param array $TCom Module conf commissions
+     * @param       $facdet
+     * @param array $TCom     Module conf commissions
      * @param array $TUserCom User overload commissions
-     * @return array
+     * @param bool  $returnVal
+     * @return array|float|int
      */
-	public function calcul_com($facdet, $TCom, $TUserCom) {
+	public static function calcul_com($facdet, $TCom, $TUserCom, $returnVal = false) {
 		global $langs;
 		$TResult = array();
-
-
-
 
 		if (empty($TUserCom)) {
 			foreach ($TCom as $globalCom) {
 				if ($facdet->remise_percent >= $globalCom->discountPercentageFrom
 					&& $facdet->remise_percent <= $globalCom->discountPercentageTo) {
 					$TResult['commission'] = (($globalCom->commissionPercentage * $facdet->total_ht)/100);
-					unset($TResult['missingInfo']);
-					break;
+                    unset($TResult['missingInfo']);
+                    break;
 				}
 				else $TResult['missingInfo'] = $langs->trans('Matrice globale incomplète');
 			}
@@ -118,26 +120,28 @@ class EasyCommissionTools
                         foreach($TCom as $globalCom) {
                             if($facdet->remise_percent >= $globalCom->discountPercentageFrom && $facdet->remise_percent <= $globalCom->discountPercentageTo) {
                                 $TResult['commission'] = (($globalCom->commissionPercentage * $facdet->total_ht) / 100);
-                                unset($TResult['missingInfo']);
+                                $TResult['totalCom']+= $TResult['commission'];
                                 break;
                             }
                             else $TResult['missingInfo'] = $langs->trans('Matrice globale incomplète');
                         }
-                        exit;
                     }
                 }
             }
 		}
 
+		if ($returnVal) return ($TResult['commission']);
 		return $TResult;
 	}
 
-
-	public function getUserTotaux() {
+    /**
+     * @return string
+     */
+	public static function getUsersTotaux() {
 	    global $conf;
 	    $sql = '';
 
-	    $sql = "SELECT u.rowid user_rowid, ugu.fk_user, ug.nom groupe, SUM(det.total_ht) sumht";
+	    $sql = "SELECT DISTINCT det.rowid, ugu.fk_user, ug.nom groupe, det.total_ht, det.remise_percent";
 
 	    $sql .= " FROM ".MAIN_DB_PREFIX."facture fa ";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
@@ -159,5 +163,109 @@ class EasyCommissionTools
 
         return $sql;
 	}
+
+    /**
+     * @return string
+     */
+	public static function countUsers() {
+	    global $conf;
+	    $sql = '';
+
+	    $sql = "SELECT COUNT(DISTINCT(ugu.fk_user)) as nb";
+
+	    $sql .= " FROM ".MAIN_DB_PREFIX."facture fa ";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."product pr ON pr.rowid = det.fk_product";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe s on s.rowid = fa.fk_soc";
+        $sql .=" LEFT JOIN ".MAIN_DB_PREFIX."categorie_product cp ON cp.fk_product = pr.rowid";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."societe_commerciaux sc ON sc.fk_soc = s.rowid";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
+        $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
+
+        $sql .= " WHERE ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
+
+        $sql .= " AND det.fk_product NOT IN (";
+        $sql .= " SELECT cp.fk_product ";
+        $sql .= " FROM ".MAIN_DB_PREFIX."categorie_product cp";
+        $sql .= " WHERE cp.fk_categorie = ".$conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY;
+        $sql .= ")";
+
+        return $sql;
+	}
+
+    /**
+     * @param $TUsersTotaux
+     * @param $i
+     * @param $arrayfields
+     * @param $totalarray
+     */
+	public static function displayDatasForTotaux($TUsersTotaux, $i, $arrayfields, &$totalarray) {
+	    global $db;
+
+	    foreach($TUsersTotaux as $fk_user => $userTotaux) {
+
+	        print '<tr class="oddeven">';
+
+            // Commercial
+            $user = new User($db);
+            $user->fetch($fk_user);
+
+            print '<td class="tdoverflowmax200">';
+            print '</br>';
+            print $user->getNomUrl(1, '', '', 1);
+            print "</td>\n";
+            if (! $i) $totalarray['nbfield']++;
+
+            // Fac REF
+            if(! empty($arrayfields['fa.ref']['checked'])) {
+                print '<td class="tdoverflowmax200">';
+                print "</td>\n";
+                if(! $i) $totalarray['nbfield']++;
+            }
+
+            // Facdet product
+            if(! empty($arrayfields['det.fk_product']['checked'])) {
+                print '<td class="tdoverflowmax200">';
+                print "</td>\n";
+                if(! $i) $totalarray['nbfield']++;
+            }
+
+            // Facdet remise
+            if(! empty($arrayfields['det.remise_percent']['checked'])) {
+                print '<td class="tdoverflowmax200" align="right">';
+                print "</td>\n";
+                if(! $i) $totalarray['nbfield']++;
+            }
+
+            // Facdet total HT
+            if (! empty($arrayfields['det.total_ht']['checked']))
+            {
+                print '<td class="tdoverflowmax200" align="right">';
+                print price($userTotaux['total_ht']);
+                print "</td>\n";
+                if (! $i) $totalarray['nbfield']++;
+                if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'det.total_ht';
+                $totalarray['val']['det.total_ht'] += $userTotaux['total_ht'];
+            }
+
+            // Facdet Commercial Commission
+            print '<td class="tdoverflowmax200" align="right">';
+            print print round($userTotaux['commission'], 1);
+            print "</td>\n";
+            if (! $i) $totalarray['nbfield']++;
+            if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'Commission';
+            $totalarray['val']['Commission'] += round($userTotaux['commission'], 1);
+
+            // Action
+            print '<td class="nowrap" align="center">';
+            print '</td>';
+
+            if(! $i) $totalarray['nbfield']++;
+            print "</tr>\n";
+            $i++;
+        }
+
+    }
 
 }

@@ -80,6 +80,17 @@ if($action == 'save_matrix'){
 
     foreach($TCommissionnement as $fk_commission => $commissionnement){
 
+        foreach($TCommissionnement as $fk2 => $com2) {
+            if ($fk_commission == $fk2) continue;
+            else {
+                if (($com2['discountPercentageFrom'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageFrom'] <= $commissionnement['discountPercentageTo'])
+                    || ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
+                {
+
+                }
+            }
+        }
+
         $easyCommission = new EasyCommission($db);
         $easyCommission->fetch($fk_commission);
 
