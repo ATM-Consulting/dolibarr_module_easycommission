@@ -31,6 +31,7 @@ EasyComRemise = Remise
 EasyComProduct = Produit
 EasyComSocAndCommercial = Client / Commercial
 EasyCommissionTitle = Commission
+notCorrectTrancheMatrix = Saisie incorrecte - Chevauchement des tranches de remise
 
 #
 # Page d'administration

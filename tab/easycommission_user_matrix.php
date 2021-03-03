@@ -108,7 +108,7 @@ if(empty($reshook)) {
 							|| ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
 						{
 							// On sort des deux foreach
-							header("Location: ".$_SERVER["PHP_SELF"]."?action=edit&id=".$id);
+							header("Location: ".$_SERVER["PHP_SELF"]."?action=edit&id=".$id."&check_MATRIX_PERSONAL_VALUE=checked");
 							setEventMessage($langs->trans('notCorrectTrancheMatrix'), 'errors');
 							exit;
 						}
