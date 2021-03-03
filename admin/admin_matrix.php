@@ -73,11 +73,6 @@ if($action == 'save_matrix'){
     $errorMsg = '';
     $TCommissionnement = GETPOST('TCommissionnement', 'array');
 
-	$TOnlyFrom = array_column($TCommissionnement, 'discountPercentageFrom');
-	$TOnlyTo = array_column($TCommissionnement, 'discountPercentageTo');
-	$minFrom = floatval(min($TOnlyFrom));
-	$minTo = floatval(min($TOnlyTo));
-
     foreach($TCommissionnement as $fk_commission => $commissionnement){
 
         foreach($TCommissionnement as $fk2 => $com2) {
