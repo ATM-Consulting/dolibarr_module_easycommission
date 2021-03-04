@@ -93,6 +93,8 @@ if(empty($reshook)) {
             }
             else {
                 $tabparam["MATRIX_PERSONAL_VALUE"] = '';
+                $sql = 'DELETE FROM ' .MAIN_DB_PREFIX.'easycommission_matrix WHERE fk_user = '.$id;
+                $res = $db->query($sql);
             }
 
 			$msg = '';
@@ -108,7 +110,7 @@ if(empty($reshook)) {
 							|| ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
 						{
 							// On sort des deux foreach
-							header("Location: ".$_SERVER["PHP_SELF"]."?action=edit&id=".$id."&check_MATRIX_PERSONAL_VALUE=checked");
+                            header("Location: ".$_SERVER["PHP_SELF"]."?action=edit&id=".$id."&check_MATRIX_PERSONAL_VALUE=checked");
 							setEventMessage($langs->trans('notCorrectTrancheMatrix'), 'errors');
 							exit;
 						}
@@ -121,6 +123,7 @@ if(empty($reshook)) {
 				$easyCommission->discountPercentageFrom = floatval($commissionnement['discountPercentageFrom']);
 				$easyCommission->discountPercentageTo = floatval($commissionnement['discountPercentageTo']);
 				$easyCommission->commissionPercentage = floatval($commissionnement['commissionPercentage']);
+				$easyCommission->fk_user = $id;
 
 				if ((! is_numeric($commissionnement['discountPercentageFrom'])) || (! is_numeric($commissionnement['discountPercentageTo'])) || (! is_numeric($commissionnement['commissionPercentage']))) {
 					$errorMsg = $langs->trans('notNumericValueMatrix');
@@ -162,7 +165,7 @@ if(empty($reshook)) {
 
             $result = dol_set_user_param($db, $conf, $object, $tabparam);
 
-            header('Location: '.$_SERVER["PHP_SELF"].'?action=edit&id='.$id);
+            header('Location: '.$_SERVER["PHP_SELF"].'?id='.$id);
             exit;
         }
     }

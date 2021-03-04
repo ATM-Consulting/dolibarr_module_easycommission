@@ -25,10 +25,10 @@ $action 		        = GETPOST('action');
 $lastTableTrId	        = GETPOST('lastTrDataId');
 $lineToRemoveId 		= GETPOST('currentIdLine');
 $maxLines 		        = GETPOST('maxLines');
+if(empty($maxLines)) $maxLines = 1;
 $lineValues 		    = GETPOST('lineValues');
 $userMatrix 		    = GETPOST('fk_user');
 $personalValueState 	= GETPOST('state_MATRIX_PERSONAL_VALUE');
-
 $errormysql = -1;
 $jsonResponse = new stdClass();
 
@@ -90,9 +90,6 @@ if (isset($action) && $action == 'getEasyCommissionMatrix') {
         $out = $matrix->displayCommissionMatrix($userMatrix);
     }
     else {
-        $sql = 'DELETE FROM ' .MAIN_DB_PREFIX.'easycommission_matrix WHERE fk_user = '.$userMatrix;
-        $res = $db->query($sql);
-
         $out = $matrix->displayCommissionMatrix();
     }
 
