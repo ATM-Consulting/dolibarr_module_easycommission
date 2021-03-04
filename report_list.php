@@ -36,6 +36,8 @@ require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 require_once(__DIR__.'/class/easycommission.class.php');
 require_once(__DIR__.'/class/easycommissionTools.class.php');
 
+$canreaduser = ($user->admin || $user->rights->easycommission->read);
+
 // Load translation files required by the page
 $langs->loadLangs(["easycommission", "other"]);
 
@@ -72,6 +74,8 @@ if(empty($page) || $page == -1) { $page = 0; }     // If $page is not defined, o
 $offset = $limit * $page;
 $pageprev = $page - 1;
 $pagenext = $page + 1;
+
+if(! $canreaduser) accessforbidden();
 
 // Initialize technical object to manage hooks. Note that conf->hooks_modules contains array of hooks
 $object = new EasyCommission($db);

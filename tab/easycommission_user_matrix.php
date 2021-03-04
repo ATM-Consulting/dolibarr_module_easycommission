@@ -39,17 +39,12 @@ global $langs, $user;
 // Load translation files required by page
 $langs->loadLangs(['companies', 'products', 'admin', 'users', 'languages', 'projects', 'members', 'easycommission@easycommission']);
 
-// Defini si peux lire/modifier permisssions
-$canreaduser = ($user->admin || $user->rights->user->user->lire);
+$canreaduser = ($user->admin || $user->rights->easycommission->read);
+$caneditfield = $user->rights->easycommission->create;
 
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'alpha');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'userihm'; // To manage different context of search
-
-if($id) {
-    // $user est le user qui edite, $id est l'id de l'utilisateur edite
-    $caneditfield = ((($user->id == $id) && $user->rights->user->self->creer) || (($user->id != $id) && $user->rights->user->user->creer));
-}
 
 // Security check
 $socid = 0;
@@ -81,7 +76,9 @@ $parameters = ['id' => $socid];
 $reshook = $hookmanager->executeHooks('doActions', $parameters, $object, $action); // Note that $action and $object may have been modified by some hooks
 if($reshook < 0) setEventMessages($hookmanager->error, $hookmanager->errors, 'errors');
 
+
 if(empty($reshook)) {
+
     if($action == 'update' && ($caneditfield || ! empty($user->admin))) {
 
         if(! $_POST["cancel"]) {

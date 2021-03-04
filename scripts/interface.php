@@ -18,6 +18,8 @@ if (!$res) die("Include of master fails");
 require_once DOL_DOCUMENT_ROOT . '/core/lib/ajax.lib.php';
 require_once DOL_DOCUMENT_ROOT . '/custom/easycommission/class/easycommission.class.php';
 
+if(empty($user->rights->easycommission->read)) accessforbidden();
+
 // Load traductions files requiredby by page
 $langs->loadLangs(array("easycommission@easycommission", "other", 'main'));
 
