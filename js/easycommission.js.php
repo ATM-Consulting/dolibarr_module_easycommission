@@ -140,21 +140,16 @@ $(document).ready(function () {
 		})
 	});
 
+
 	/**
-	 * Diverses vérifications de saisie
+	 *  Vérifications de saisie au changement des valeurs "Commission"
 	 */
-	$(document).on("change", "input[type=number]", function () {
+	$(document).on("change", "input.inputCommission", function () {
 
 		var currentValuesLine = $(this).parent().closest('tr');
-		var currentValueFrom = currentValuesLine.children('td.valueInputFrom').children('input').val();
-		var currentValueTo = currentValuesLine.children('td.valueInputTo').children('input').val();
-		var currentValueToDiv = currentValuesLine.children('td.valueInputTo').children('input');
 		var currentCommission = currentValuesLine.children('td.valueCommission').children('input').val();
 		var currentCommissionDiv = currentValuesLine.children('td.valueCommission').children('input');
 
-		if ((currentValueTo) && (currentValueFrom > currentValueTo)) {
-			currentValueToDiv.css("borderColor", "red");
-		}
 		if ((currentCommission) && (currentCommission > 100) || (currentCommission < 0)) {
 			currentCommissionDiv.css("borderColor", "red");
 		}
@@ -178,17 +173,18 @@ $(document).ready(function () {
 			}
 			if ((!valInputFrom) || (!valInputTo) || (!valueCommission)) {
 				e.preventDefault();
-				setCommissionMessage("Une des valeurs est vide. Veuillez renseigner toutes les valeurs", "error")
+				setCommissionMessage("Une des valeurs est vide. Veuillez renseigner toutes les valeurs", 'error');
 			}
 			if ((valInputFrom < 0) || (valInputTo < 0) || (valueCommission < 0)) {
 				e.preventDefault();
-				setCommissionMessage("Aucune valeur ne peut être inférieure à zéro", "error")
+				setCommissionMessage("Aucune valeur ne peut être inférieure à zéro", 'error');
 			}
 			if ((valInputFrom > 100) || (valInputTo > 100) || (valueCommission > 100)) {
 				e.preventDefault();
-				setCommissionMessage("Aucune valeur ne peut être supérieure à 100", "error")
+				setCommissionMessage("Aucune valeur ne peut être supérieure à 100", 'error');
 			}
 		})
+
 	})
 
 	function setCommissionMessage($out, $type = "success") {

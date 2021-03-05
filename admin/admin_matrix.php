@@ -75,6 +75,19 @@ if($action == 'save_matrix'){
 
     foreach($TCommissionnement as $fk_commission => $commissionnement){
 
+        foreach($TCommissionnement as $fk2 => $com2) {
+            if ($fk_commission == $fk2) continue;
+            else {
+                if (($com2['discountPercentageFrom'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageFrom'] <= $commissionnement['discountPercentageTo'])
+                    || ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
+                {
+					$errorMsg = $langs->trans('notCorrectTrancheMatrix');
+					// On sort des deux foreach
+					break 2;
+                }
+            }
+        }
+
         $easyCommission = new EasyCommission($db);
         $easyCommission->fetch($fk_commission);
 
@@ -82,12 +95,14 @@ if($action == 'save_matrix'){
         $easyCommission->discountPercentageTo = floatval($commissionnement['discountPercentageTo']);
         $easyCommission->commissionPercentage = floatval($commissionnement['commissionPercentage']);
 
-
 	    if ((! is_numeric($commissionnement['discountPercentageFrom'])) || (! is_numeric($commissionnement['discountPercentageTo'])) || (! is_numeric($commissionnement['commissionPercentage']))) {
 		    $errorMsg = $langs->trans('notNumericValueMatrix');
 		    break;
 	    }
-        if (empty($easyCommission->discountPercentageFrom || empty($easyCommission->discountPercentageTo) || empty($easyCommission->commissionPercentage))) {
+        if (empty($easyCommission->discountPercentageFrom) && ($easyCommission->discountPercentageFrom != 0) ||
+	        empty($easyCommission->discountPercentageTo) && ($easyCommission->discountPercentageFrom != 0)||
+	        empty($easyCommission->commissionPercentage) && ($easyCommission->discountPercentageFrom != 0))
+        {
         	$errorMsg = $langs->trans('emptyValueMatrix');
         	break;
         }
@@ -124,7 +139,7 @@ if($action == 'save_matrix'){
  * View
  */
 
-llxHeader('', $langs->trans("EasyCommissionSetup"), $help_url);
+llxHeader('', $langs->trans("EasyCommissionSetup"));
 
 
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1">'.$langs->trans("BackToModuleList").'</a>';
@@ -148,7 +163,7 @@ print '<table class="noborder" width="100%">';
 _setupPrintTitle('EASYCOMMISSION_MATRIX_CONF_TITLE');
 
 
-$matrix = new easyCommission($db);
+$matrix = new EasyCommission($db);
 print $matrix->displayCommissionMatrix();
 
 

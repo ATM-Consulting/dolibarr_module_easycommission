@@ -39,17 +39,12 @@ global $langs, $user;
 // Load translation files required by page
 $langs->loadLangs(['companies', 'products', 'admin', 'users', 'languages', 'projects', 'members', 'easycommission@easycommission']);
 
-// Defini si peux lire/modifier permisssions
-$canreaduser = ($user->admin || $user->rights->user->user->lire);
+$canreaduser = ($user->admin || $user->rights->easycommission->read);
+$caneditfield = $user->rights->easycommission->create;
 
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'alpha');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'userihm'; // To manage different context of search
-
-if($id) {
-    // $user est le user qui edite, $id est l'id de l'utilisateur edite
-    $caneditfield = ((($user->id == $id) && $user->rights->user->self->creer) || (($user->id != $id) && $user->rights->user->user->creer));
-}
 
 // Security check
 $socid = 0;
@@ -81,7 +76,9 @@ $parameters = ['id' => $socid];
 $reshook = $hookmanager->executeHooks('doActions', $parameters, $object, $action); // Note that $action and $object may have been modified by some hooks
 if($reshook < 0) setEventMessages($hookmanager->error, $hookmanager->errors, 'errors');
 
+
 if(empty($reshook)) {
+
     if($action == 'update' && ($caneditfield || ! empty($user->admin))) {
 
         if(! $_POST["cancel"]) {
@@ -93,32 +90,75 @@ if(empty($reshook)) {
             }
             else {
                 $tabparam["MATRIX_PERSONAL_VALUE"] = '';
+                $sql = 'DELETE FROM ' .MAIN_DB_PREFIX.'easycommission_matrix WHERE fk_user = '.$id;
+                $res = $db->query($sql);
             }
 
-            $TCommissionnement = GETPOST('TCommissionnement', 'array');
+			$msg = '';
+			$errorMsg = '';
+			$TCommissionnement = GETPOST('TCommissionnement', 'array');
 
-            foreach($TCommissionnement as $fk_commission => $commissionnement) {
+			foreach($TCommissionnement as $fk_commission => $commissionnement){
 
-                $easyCommission = new EasyCommission($db);
-                $easyCommission->fetch($fk_commission);
+				foreach($TCommissionnement as $fk2 => $com2) {
+					if ($fk_commission == $fk2) continue;
+					else {
+						if (($com2['discountPercentageFrom'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageFrom'] <= $commissionnement['discountPercentageTo'])
+							|| ($com2['discountPercentageTo'] >= $commissionnement['discountPercentageFrom'] && $com2['discountPercentageTo'] <= $commissionnement['discountPercentageTo']))
+						{
+							// On sort des deux foreach
+                            header("Location: ".$_SERVER["PHP_SELF"]."?action=edit&id=".$id."&check_MATRIX_PERSONAL_VALUE=checked");
+							setEventMessage($langs->trans('notCorrectTrancheMatrix'), 'errors');
+							exit;
+						}
+					}
+				}
 
-                $easyCommission->discountPercentageFrom = $commissionnement['discountPercentageFrom'];
-                $easyCommission->discountPercentageTo = $commissionnement['discountPercentageTo'];
-                $easyCommission->commissionPercentage = $commissionnement['commissionPercentage'];
-                $easyCommission->fk_user = $object->id;
+				$easyCommission = new EasyCommission($db);
+				$easyCommission->fetch($fk_commission);
 
-                if(! empty($easyCommission->id)) {
-                    $res = $easyCommission->update($user);
-                    if($res > 0) {
-                        $msg = $langs->trans('SetupSaved');
-                    }
-                }
-                else {
-                    $easyCommission->create($user);
-                }
-            }
+				$easyCommission->discountPercentageFrom = floatval($commissionnement['discountPercentageFrom']);
+				$easyCommission->discountPercentageTo = floatval($commissionnement['discountPercentageTo']);
+				$easyCommission->commissionPercentage = floatval($commissionnement['commissionPercentage']);
+				$easyCommission->fk_user = $id;
 
-            setEventMessage($msg);
+				if ((! is_numeric($commissionnement['discountPercentageFrom'])) || (! is_numeric($commissionnement['discountPercentageTo'])) || (! is_numeric($commissionnement['commissionPercentage']))) {
+					$errorMsg = $langs->trans('notNumericValueMatrix');
+					break;
+				}
+				if (empty($easyCommission->discountPercentageFrom) && ($easyCommission->discountPercentageFrom != 0) ||
+					empty($easyCommission->discountPercentageTo) && ($easyCommission->discountPercentageFrom != 0)||
+					empty($easyCommission->commissionPercentage) && ($easyCommission->discountPercentageFrom != 0))
+				{
+					$errorMsg = $langs->trans('emptyValueMatrix');
+					break;
+				}
+				if ($easyCommission->discountPercentageTo < $easyCommission->discountPercentageFrom) {
+					$errorMsg = $langs->trans('easycommissionMatrixWrongDeltaValue');
+					break;
+				}
+				if (($easyCommission->discountPercentageFrom < 0) || ($easyCommission->discountPercentageTo < 0) || ($easyCommission->commissionPercentage < 0)) {
+					$errorMsg = $langs->trans('easycommissionMatrixUnderZeroValue');
+					break;
+				}
+				if (($easyCommission->discountPercentageFrom > 100) || ($easyCommission->discountPercentageTo > 100) || ($easyCommission->commissionPercentage > 100)) {
+					$errorMsg = $langs->trans('easycommissionMatrixOver100Value');
+					break;
+				}
+
+				if(! empty($easyCommission->id)){
+					$res = $easyCommission->update($user);
+					if($res > 0){
+						$msg = $langs->trans('SetupSaved');
+					}
+				} else {
+					$easyCommission->create($user);
+				}
+			}
+
+			$msgToDisplay = ! empty($errorMsg) ? $errorMsg : $msg;
+			$typeOfMsgToDisplay = ! empty($errorMsg) ? 'errors' : 'mesgs';
+			setEventMessage($msgToDisplay, $typeOfMsgToDisplay);
 
             $result = dol_set_user_param($db, $conf, $object, $tabparam);
 
@@ -245,7 +285,7 @@ if($action == 'edit') {
 
     print '</table><br>';
 
-    $matrix = new easyCommission($db);
+    $matrix = new EasyCommission($db);
 
     if($object->conf->MATRIX_PERSONAL_VALUE == 'checked') {
         print $matrix->displayCommissionMatrix($object->id);
@@ -298,7 +338,7 @@ else {
 
     print '</div>';
 
-    $matrix = new easyCommission($db);
+    $matrix = new EasyCommission($db);
 
     if($object->conf->MATRIX_PERSONAL_VALUE == 'checked') {
         print $matrix->displayCommissionMatrix($object->id);
@@ -308,8 +348,8 @@ else {
     }
 
     print '<script type="text/javascript">
-        $(document).ready(function() {      
-            if ($("#check_MATRIX_PERSONAL_VALUE").prop("disabled")) { 
+        $(document).ready(function() {
+            if ($("#check_MATRIX_PERSONAL_VALUE").prop("disabled")) {
                 $("input[type=number]").attr(\'disabled\', \'disabled\');
                 $("span.easycommissionaddbtn").closest("a").remove();
                 $("span.easycommissionrmvbtn").remove();

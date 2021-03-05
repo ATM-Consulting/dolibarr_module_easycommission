@@ -241,24 +241,21 @@ class modEasyCommission extends DolibarrModules
 
 		// Permissions provided by this module
 		$this->rights = array();
-		$r = 0;
-		// Add here entries to declare new permissions
-		/* BEGIN MODULEBUILDER PERMISSIONS */
-		$this->rights[$r][0] = $this->numero + $r; // Permission id (must not be already used)
-		$this->rights[$r][1] = 'Read objects of EasyCommission'; // Permission label
-		$this->rights[$r][4] = 'myobject'; // In php code, permission will be checked by test if ($user->rights->easycommission->level1->level2)
-		$this->rights[$r][5] = 'read'; // In php code, permission will be checked by test if ($user->rights->easycommission->level1->level2)
+
+		$r=0;
+		$this->rights[$r][0] = $this->numero . $r;	// Permission id (must not be already used)
+		$this->rights[$r][1] = 'Voir rapport';	// Permission label
+		$this->rights[$r][3] = 0; 					// Permission by default for new user (0/1)
+		$this->rights[$r][4] = 'read';				// In php code, permission will be checked by test if ($user->rights->discountrules->level1->level2)
+		$this->rights[$r][5] = '';				    // In php code, permission will be checked by test if ($user->rights->discountrules->level1->level2)
+
 		$r++;
-		$this->rights[$r][0] = $this->numero + $r; // Permission id (must not be already used)
-		$this->rights[$r][1] = 'Create/Update objects of EasyCommission'; // Permission label
-		$this->rights[$r][4] = 'myobject'; // In php code, permission will be checked by test if ($user->rights->easycommission->level1->level2)
-		$this->rights[$r][5] = 'write'; // In php code, permission will be checked by test if ($user->rights->easycommission->level1->level2)
-		$r++;
-		$this->rights[$r][0] = $this->numero + $r; // Permission id (must not be already used)
-		$this->rights[$r][1] = 'Delete objects of EasyCommission'; // Permission label
-		$this->rights[$r][4] = 'myobject'; // In php code, permission will be checked by test if ($user->rights->easycommission->level1->level2)
-		$this->rights[$r][5] = 'delete'; // In php code, permission will be checked by test if ($user->rights->easycommission->level1->level2)
-		$r++;
+		$this->rights[$r][0] = $this->numero . $r;	// Permission id (must not be already used)
+		$this->rights[$r][1] = 'Modifier commissionnement utilisateur';	// Permission label
+		$this->rights[$r][3] = 0; 					// Permission by default for new user (0/1)
+		$this->rights[$r][4] = 'create';				// In php code, permission will be checked by test if ($user->rights->discountrules->level1->level2)
+		$this->rights[$r][5] = '';				    // In php code, permission will be checked by test if ($user->rights->discountrules->level1->level2)
+
 		/* END MODULEBUILDER PERMISSIONS */
 
 		// Main menu entries to add
@@ -281,134 +278,27 @@ class modEasyCommission extends DolibarrModules
 			'user'=>2, // 0=Menu for internal users, 1=external users, 2=both
 		);*/
 		/* END MODULEBUILDER TOPMENU */
-		/* BEGIN MODULEBUILDER LEFTMENU MYOBJECT
-		$this->menu[$r++]=array(
-			'fk_menu'=>'fk_mainmenu=easycommission',      // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-			'type'=>'left',                          // This is a Top menu entry
-			'titre'=>'MyObject',
-			'mainmenu'=>'easycommission',
-			'leftmenu'=>'myobject',
-			'url'=>'/easycommission/easycommissionindex.php',
+
+		// BEGIN MODULEBUILDER LEFTMENU MYOBJECT
+		$r++;
+		$this->menu[$r]=array(
+			'fk_menu'=>'fk_mainmenu=billing',		    // Use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
+			'type'=>'left',			                	// This is a Left menu entry
+			'titre'=>'ReportEasyCommission',
+			'mainmenu'=>'billing',
+			'leftmenu'=>'easycommission',
+			'url'=>'/easycommission/report_list.php',
 			'langs'=>'easycommission@easycommission',	        // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
 			'position'=>1000+$r,
-			'enabled'=>'$conf->easycommission->enabled',  // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled.
-			'perms'=>'$user->rights->easycommission->myobject->read',			                // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
+			'enabled'=>'$conf->easycommission->enabled',  		// Define condition to show or hide menu entry. Use '$conf->discountrules->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
+			'perms'=>'$user->rights->easycommission->read',		// Use 'perms'=>'$user->rights->discountrules->level1->level2' if you want your menu with a permission rules
 			'target'=>'',
-			'user'=>2,				                // 0=Menu for internal users, 1=external users, 2=both
-		);
-		$this->menu[$r++]=array(
-			'fk_menu'=>'fk_mainmenu=easycommission,fk_leftmenu=myobject',	    // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-			'type'=>'left',			                // This is a Left menu entry
-			'titre'=>'List MyObject',
-			'mainmenu'=>'easycommission',
-			'leftmenu'=>'easycommission_myobject_list',
-			'url'=>'/easycommission/myobject_list.php',
-			'langs'=>'easycommission@easycommission',	        // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-			'position'=>1000+$r,
-			'enabled'=>'$conf->easycommission->enabled',  // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-			'perms'=>'$user->rights->easycommission->myobject->read',			                // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
-			'target'=>'',
-			'user'=>2,				                // 0=Menu for internal users, 1=external users, 2=both
-		);
-		$this->menu[$r++]=array(
-			'fk_menu'=>'fk_mainmenu=easycommission,fk_leftmenu=myobject',	    // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-			'type'=>'left',			                // This is a Left menu entry
-			'titre'=>'New MyObject',
-			'mainmenu'=>'easycommission',
-			'leftmenu'=>'easycommission_myobject_new',
-			'url'=>'/easycommission/myobject_card.php?action=create',
-			'langs'=>'easycommission@easycommission',	        // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-			'position'=>1000+$r,
-			'enabled'=>'$conf->easycommission->enabled',  // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-			'perms'=>'$user->rights->easycommission->myobject->write',			                // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
-			'target'=>'',
-			'user'=>2,				                // 0=Menu for internal users, 1=external users, 2=both
-		);
-		*/
+			'user'=>0
 
-        $this->menu[$r++]=array(
-            // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-            'fk_menu'=>'fk_mainmenu=easycommission',
-            // This is a Left menu entry
-            'type'=>'left',
-            'titre'=>'List EasyCommission',
-            'mainmenu'=>'easycommission',
-            'leftmenu'=>'easycommission_easycommission',
-            'url'=>'/easycommission/easycommission_list.php',
-            // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-            'langs'=>'easycommission@easycommission',
-            'position'=>1100+$r,
-            // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-            'enabled'=>'$conf->easycommission->enabled',
-            // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
-            'perms'=>'1',
-            'target'=>'',
-            // 0=Menu for internal users, 1=external users, 2=both
-            'user'=>2,
-        );
-        $this->menu[$r++]=array(
-            // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-            'fk_menu'=>'fk_mainmenu=easycommission,fk_leftmenu=easycommission_easycommission',
-            // This is a Left menu entry
-            'type'=>'left',
-            'titre'=>'New EasyCommission',
-            'mainmenu'=>'easycommission',
-            'leftmenu'=>'easycommission_easycommission',
-            'url'=>'/easycommission/easycommission_card.php?action=create',
-            // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-            'langs'=>'easycommission@easycommission',
-            'position'=>1100+$r,
-            // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-            'enabled'=>'$conf->easycommission->enabled',
-            // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
-            'perms'=>'1',
-            'target'=>'',
-            // 0=Menu for internal users, 1=external users, 2=both
-            'user'=>2
-        );
+		);				                // 0=Menu for internal users, 1=external users, 2=both
 
-		/* */
+		$r++;
 
-        $this->menu[$r++]=array(
-            // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-            'fk_menu'=>'fk_mainmenu=easycommission',
-            // This is a Left menu entry
-            'type'=>'left',
-            'titre'=>'List EasyCommission',
-            'mainmenu'=>'easycommission',
-            'leftmenu'=>'easycommission_easycommission',
-            'url'=>'/easycommission/easycommission_list.php',
-            // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-            'langs'=>'easycommission@easycommission',
-            'position'=>1100+$r,
-            // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-            'enabled'=>'$conf->easycommission->enabled',
-            // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
-            'perms'=>'1',
-            'target'=>'',
-            // 0=Menu for internal users, 1=external users, 2=both
-            'user'=>2,
-        );
-        $this->menu[$r++]=array(
-            // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-            'fk_menu'=>'fk_mainmenu=easycommission,fk_leftmenu=easycommission_easycommission',
-            // This is a Left menu entry
-            'type'=>'left',
-            'titre'=>'New EasyCommission',
-            'mainmenu'=>'easycommission',
-            'leftmenu'=>'easycommission_easycommission',
-            'url'=>'/easycommission/easycommission_card.php?action=create',
-            // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-            'langs'=>'easycommission@easycommission',
-            'position'=>1100+$r,
-            // Define condition to show or hide menu entry. Use '$conf->easycommission->enabled' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-            'enabled'=>'$conf->easycommission->enabled',
-            // Use 'perms'=>'$user->rights->easycommission->level1->level2' if you want your menu with a permission rules
-            'perms'=>'1',
-            'target'=>'',
-            // 0=Menu for internal users, 1=external users, 2=both
-            'user'=>2
-        );
 
 		/* END MODULEBUILDER LEFTMENU MYOBJECT */
 

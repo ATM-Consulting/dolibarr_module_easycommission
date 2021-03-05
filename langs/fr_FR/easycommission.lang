@@ -21,6 +21,17 @@
 ModuleEasyCommissionName = EasyCommission
 # Module description 'ModuleEasyCommissionDesc'
 ModuleEasyCommissionDesc = Calcul des commissions des commerciaux par tranche de remise
+ReportEasyCommission = Commissionnement
+
+EasyCommercial = Commercial
+EasyReport = Rapport de commissionnement
+EasyComRef = Réf
+EasyComTotalHT = Total HT
+EasyComRemise = Remise
+EasyComProduct = Produit
+EasyComSocAndCommercial = Client / Commercial
+EasyCommissionTitle = Commission
+notCorrectTrancheMatrix = Saisie incorrecte - Chevauchement des tranches de remise
 
 #
 # Page d'administration
@@ -50,6 +61,7 @@ easycommissionMatrixUnderZeroValue = Aucune valeur ne peut être inférieure à 
 easycommissionMatrixOver100Value = Aucune valeur ne peut être supérieure à 100
 easycommissionMatrixWrongDeltaValue = La valeur "à" est inférieure à la valeur "De"
 notNumericValueMatrix = La valeur insérée n'est pas conforme. Seuls des nombres sont acceptés.
+incorrectDiscountTranche = Saisie incorrecte - Chevauchement des tranches de remise
 
 #
 # Surcharge de la matrice de commissionnement par utilisateur
