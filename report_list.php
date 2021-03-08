@@ -479,7 +479,7 @@ if ($resql)
 
                 // Facdet Commercial Commission
                 print '<td class="tdoverflowmax200" align="right">';
-                if(! $TRes['missingInfo']) print round($TRes['commission'], 2);
+                if(! $TRes['missingInfo']) print price(round($TRes['commission'], 2));
                 else print $TRes['missingInfo'];
 
                 print "</td>\n";

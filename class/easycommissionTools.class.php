@@ -252,7 +252,7 @@ class EasyCommissionTools
 
             // Facdet Commercial Commission
             print '<td class="tdoverflowmax200" align="right">';
-            print price($userTotaux['commission']);
+            print price(round($userTotaux['commission'], 2));
             print "</td>\n";
             if (! $i) $totalarray['nbfield']++;
             if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'Commission';
