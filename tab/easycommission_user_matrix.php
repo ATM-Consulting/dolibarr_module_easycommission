@@ -127,8 +127,8 @@ if(empty($reshook)) {
 					break;
 				}
 				if (empty($easyCommission->discountPercentageFrom) && ($easyCommission->discountPercentageFrom != 0) ||
-					empty($easyCommission->discountPercentageTo) && ($easyCommission->discountPercentageFrom != 0)||
-					empty($easyCommission->commissionPercentage) && ($easyCommission->discountPercentageFrom != 0))
+					empty($easyCommission->discountPercentageTo) && ($easyCommission->discountPercentageTo != 0)||
+					empty($easyCommission->commissionPercentage) && ($easyCommission->commissionPercentage != 0))
 				{
 					$errorMsg = $langs->trans('emptyValueMatrix');
 					break;

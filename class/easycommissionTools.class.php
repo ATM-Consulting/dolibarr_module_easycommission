@@ -121,6 +121,7 @@ class EasyCommissionTools
                             if($facdet->remise_percent >= $globalCom->discountPercentageFrom && $facdet->remise_percent <= $globalCom->discountPercentageTo) {
                                 $TResult['commission'] = (($globalCom->commissionPercentage * $facdet->total_ht) / 100);
                                 $TResult['totalCom']+= $TResult['commission'];
+                                unset($TResult['missingInfo']);
                                 break;
                             }
                             else $TResult['missingInfo'] = $langs->trans('Matrice globale incomplète');
@@ -251,7 +252,7 @@ class EasyCommissionTools
 
             // Facdet Commercial Commission
             print '<td class="tdoverflowmax200" align="right">';
-            print print round($userTotaux['commission'], 1);
+            print price($userTotaux['commission']);
             print "</td>\n";
             if (! $i) $totalarray['nbfield']++;
             if (! $i) $totalarray['pos'][$totalarray['nbfield']] = 'Commission';
