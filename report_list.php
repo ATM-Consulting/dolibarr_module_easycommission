@@ -472,7 +472,7 @@ if ($resql)
                 // Facdet remise
                 if(! empty($arrayfields['det.remise_percent']['checked'])) {
                     print '<td class="tdoverflowmax200" align="right">';
-                    if(! empty($search_sale)) print $obj->remise_percent.'%';
+                    print $obj->remise_percent.'%';
                     print "</td>\n";
                     if(! $i) $totalarray['nbfield']++;
                 }

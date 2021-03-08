@@ -171,7 +171,7 @@ $(document).ready(function () {
 				e.preventDefault();
 				setCommissionMessage("La valeur 'à' est inférieure à la valeur 'De'", "error")
 			}
-			if ((!valInputFrom) || (!valInputTo) || (!valueCommission)) {
+			if (valInputFrom == '' || valInputTo == '' || valueCommission == '') {
 				e.preventDefault();
 				setCommissionMessage("Une des valeurs est vide. Veuillez renseigner toutes les valeurs", 'error');
 			}
