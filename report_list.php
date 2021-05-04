@@ -178,7 +178,7 @@ if ( ! empty($search_sale)) {
 
     if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
 
-	$sql.= " WHERE fa.fk_statut = 2";
+	$sql.= " WHERE fa.fk_statut = ".Facture::STATUS_CLOSED;
 	$sql.= " AND det.fk_product NOT IN (";
     $sql.= " SELECT cp.fk_product ";
     $sql.= " FROM ".MAIN_DB_PREFIX."categorie_product cp";

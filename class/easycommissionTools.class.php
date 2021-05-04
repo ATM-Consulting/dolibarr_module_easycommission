@@ -154,7 +154,7 @@ class EasyCommissionTools
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
 
-		$sql .= " WHERE fa.fk_statut = 2";
+		$sql .= " WHERE fa.fk_statut = ".Facture::STATUS_CLOSED;
 		$sql .= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
 
         $sql .= " AND det.fk_product NOT IN (";
@@ -185,7 +185,7 @@ class EasyCommissionTools
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
 
-		$sql .= " WHERE fa.fk_statut = 2";
+		$sql .= " WHERE fa.fk_statut = ".Facture::STATUS_CLOSED;
         $sql .= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
         $sql .= " AND det.fk_product NOT IN (";
         $sql .= " SELECT cp.fk_product ";
