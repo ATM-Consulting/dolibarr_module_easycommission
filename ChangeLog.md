@@ -1,5 +1,8 @@
-# CHANGELOG EASYCOMMISSION FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
+# Change Log
+All notable changes to this project will be documented in this file.
 
-## 1.0
+## Unreleased
 
-Initial version
+## Version 1.0
+
+- FIX : Add invoice status to take into consideration only paid invoices *04/05/2021* - 1.0.1
