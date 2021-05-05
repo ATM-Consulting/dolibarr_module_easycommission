@@ -42,6 +42,8 @@ EasyCommissionSetupPage = Page de configuration du module EasyCommission
 EASYCOMMISSION_GLOBAL_CONF_TITLE = Configuration globale
 EASYCOMMISSION_USER_GROUP = Groupe d'utilisateurs pris en compte pour le calcul du commissionnement
 EASYCOMMISSION_EXCLUDE_CATEGORY = Catégorie de produits/service à ne pas prendre en compte pour le calcul de commissionnement
+EASYCOMMISSION_FILTER_ON_BILLING_DATE = Filtrer sur la date de facturation
+PaymentDateByDefault = Par défaut, le filtre s'effectue sur la date de règlement de la facture et non sur la date de facturation.
 
 #
 # Page Matrice de commissionnement

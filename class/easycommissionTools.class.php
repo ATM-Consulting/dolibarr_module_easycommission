@@ -142,7 +142,7 @@ class EasyCommissionTools
 	    global $conf;
 	    $sql = '';
 
-	    $sql = "SELECT DISTINCT det.rowid, ugu.fk_user, ug.nom groupe, det.total_ht, det.remise_percent";
+	    $sql = "SELECT DISTINCT det.rowid, ugu.fk_user, ug.nom groupe, det.total_ht, det.remise_percent, pm.datep";
 
 	    $sql .= " FROM ".MAIN_DB_PREFIX."facture fa ";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."facturedet det on fa.rowid = det.fk_facture";
@@ -153,6 +153,8 @@ class EasyCommissionTools
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
+		$sql .=" INNER JOIN ".MAIN_DB_PREFIX."paiement_facture pmf ON fa.rowid = pmf.fk_facture";
+		$sql .=" INNER JOIN ".MAIN_DB_PREFIX."paiement pm ON pm.rowid = pmf.fk_paiement";
 
 		$sql .= " WHERE fa.fk_statut = ".Facture::STATUS_CLOSED;
 		$sql .= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
@@ -184,6 +186,8 @@ class EasyCommissionTools
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
         $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
+		$sql .=" INNER JOIN ".MAIN_DB_PREFIX."paiement_facture pmf ON fa.rowid = pmf.fk_facture";
+		$sql .=" INNER JOIN ".MAIN_DB_PREFIX."paiement pm ON pm.rowid = pmf.fk_paiement";
 
 		$sql .= " WHERE fa.fk_statut = ".Facture::STATUS_CLOSED;
         $sql .= " AND ug.rowid = ".$conf->global->EASYCOMMISSION_USER_GROUP;
