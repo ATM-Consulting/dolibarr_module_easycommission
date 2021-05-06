@@ -1,5 +1,7 @@
 <?php
 
+if (!defined('NOTOKENRENEWAL')) define('NOTOKENRENEWAL', 1);
+
 $sapi_type = php_sapi_name();
 $script_file = basename(__FILE__);
 $path = dirname(__FILE__) . '/';
@@ -23,14 +25,13 @@ if(empty($user->rights->easycommission->read)) accessforbidden();
 // Load traductions files requiredby by page
 $langs->loadLangs(array("easycommission@easycommission", "other", 'main'));
 
-$action 		        = GETPOST('action');
-$lastTableTrId	        = GETPOST('lastTrDataId');
-$lineToRemoveId 		= GETPOST('currentIdLine');
-$maxLines 		        = GETPOST('maxLines');
+$action 		        = GETPOST('action', 'alpha');
+$lastTableTrId	        = GETPOST('lastTrDataId', 'int');
+$lineToRemoveId 		= GETPOST('currentIdLine', 'int');
+$maxLines 		        = GETPOST('maxLines', 'int');
 if(empty($maxLines)) $maxLines = 1;
-$lineValues 		    = GETPOST('lineValues');
-$userMatrix 		    = GETPOST('fk_user');
-$personalValueState 	= GETPOST('state_MATRIX_PERSONAL_VALUE');
+$userMatrix 		    = GETPOST('fk_user', 'int');
+$personalValueState 	= GETPOST('state_MATRIX_PERSONAL_VALUE', 'alpha');
 $errormysql = -1;
 $jsonResponse = new stdClass();
 
