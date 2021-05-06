@@ -118,6 +118,9 @@ if($conf->categorie->enabled) {
 
 }
 
+// Filter on the invoice date instead of the payment date
+_printOnOff('EASYCOMMISSION_FILTER_ON_BILLING_DATE', '', 'PaymentDateByDefault');
+
 print '<table>';
 
 _updateBtn();

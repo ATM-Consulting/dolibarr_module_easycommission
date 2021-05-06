@@ -158,9 +158,11 @@ print load_fiche_titre($langs->trans($page_name));
 // Build and execute select
 // Two conditions : if we select a commercial or not
 // --------------------------------------------------------------------
+$sqlDateColFilter = $conf->global->EASYCOMMISSION_FILTER_ON_BILLING_DATE ? 'fa.datef' : 'pm.datep'; // Global sql filter according to module settings
+
 if ( ! empty($search_sale)) {
     $sql = "SELECT DISTINCT fa.rowid facrowid, fa.ref facref, fa.datef, det.rowid detrowid, det.fk_product detproduct, det.fk_facture fk_facture, det.total_ht, det.remise_percent,
-    pr.rowid prowid, pr.ref productref, pr.label productlabel, pr.tosell productsell, pr.tobuy productbuy, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe";
+    pr.rowid prowid, pr.ref productref, pr.label productlabel, pr.tosell productsell, pr.tobuy productbuy, s.rowid srowid, s.nom, u.rowid user_rowid, ugu.fk_user, ug.nom groupe, pm.datep paiement";
 
     // Add fields from hooks
     $parameters=array();
@@ -175,10 +177,13 @@ if ( ! empty($search_sale)) {
     $sql .=" INNER JOIN ".MAIN_DB_PREFIX."user u ON u.rowid = sc.fk_user";
     $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup_user ugu ON ugu.fk_user = u.rowid";
     $sql .=" INNER JOIN ".MAIN_DB_PREFIX."usergroup ug ON ug.rowid = ugu.fk_usergroup";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."paiement_facture pmf ON fa.rowid = pmf.fk_facture";
+    $sql .=" INNER JOIN ".MAIN_DB_PREFIX."paiement pm ON pm.rowid = pmf.fk_paiement";
 
     if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
 
-    $sql.= " WHERE det.fk_product NOT IN (";
+	$sql.= " WHERE fa.fk_statut = ".Facture::STATUS_CLOSED;
+	$sql.= " AND det.fk_product NOT IN (";
     $sql.= " SELECT cp.fk_product ";
     $sql.= " FROM ".MAIN_DB_PREFIX."categorie_product cp";
     $sql.= " WHERE cp.fk_categorie = ".$conf->global->EASYCOMMISSION_EXCLUDE_CATEGORY;
@@ -198,12 +203,12 @@ if ( ! empty($search_sale)) {
 
     $sql .= " AND ugu.fk_user = ".$search_sale;
 
-    if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) {
-        $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
-    } else $sql .= " AND fa.datef between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
+    if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND ".$sqlDateColFilter." between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
+    else $sql .= " AND ".$sqlDateColFilter." between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
 
-    if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
-    if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d H:i:s', $search_invoice_end)."'";
+    if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND ".$sqlDateColFilter." between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
+
+    if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND ".$sqlDateColFilter." between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d H:i:s', $search_invoice_end)."'";
 
     $sql.=$db->order($sortfield,$sortorder);
 
@@ -212,16 +217,16 @@ if ( ! empty($search_sale)) {
     $sql = EasyCommissionTools::getUsersTotaux();
     $sqlCount = EasyCommissionTools::countUsers();
 
-    if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) {
-        $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
-        $sqlCount .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
+	if ( ! empty ($search_invoice_start) && ! empty($search_invoice_end)) {
+        $sql .= " AND ".$sqlDateColFilter." between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
+        $sqlCount .= " AND ".$sqlDateColFilter." between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".date('Y-m-d H:i:s', $search_invoice_end)."'";
     } else {
-        $sql .= " AND fa.datef between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
-        $sqlCount .= " AND fa.datef between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
+        $sql .= " AND ".$sqlDateColFilter." between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
+        $sqlCount .= " AND ".$sqlDateColFilter." between '".$prevMonthDateStart."' and '".$prevMonthDateEnd."'";
     }
 
-    if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND fa.datef between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
-    if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND fa.datef between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d H:i:s', $search_invoice_end)."'";
+    if ( ! empty ($search_invoice_start) && empty($search_invoice_end)) $sql .= " AND ".$sqlDateColFilter." between '".date('Y-m-d H:i:s', $search_invoice_start)."' and '".dol_print_date(dol_now(), '%Y-%m-%d')."'";
+    if ( empty ($search_invoice_start) && ! empty($search_invoice_end)) $sql .= " AND ".$sqlDateColFilter." between '".dol_print_date(dol_now(), '%Y-%m-%d')."' and ".date('Y-m-d H:i:s', $search_invoice_end)."'";
 
     $sql.=$db->order($sortfield,$sortorder);
     $sqlCount.=$db->order($sortfield,$sortorder);
