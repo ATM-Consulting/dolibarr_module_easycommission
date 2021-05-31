@@ -52,7 +52,7 @@ $search_sale = GETPOST('search_sale', 'int');
 $now = dol_now();
 $prevMonthDateStart = date('Y-m-d H:i:s', mktime(0 , 0, 0, date("m")-1,1, date("Y")));
 $nbDaysInPrevMonth = date("t", strtotime($prevMonthDateStart));
-$prevMonthDateEnd = date('Y-m-d H:i:s', mktime(0 , 0, 0, date("m")-1, $nbDaysInPrevMonth, date("Y")));
+$prevMonthDateEnd = date('Y-m-d H:i:s', mktime(23, 59, 59, date("m")-1, $nbDaysInPrevMonth, date("Y")));
 
 $search_invoice_start = GETPOST('search_fac_date_start', 'int');
 if(empty($search_invoice_start)) $search_invoice_start = dol_mktime(0, 0, 0, GETPOST('search_invoice_startmonth', 'int'), GETPOST('search_invoice_startday', 'int'), GETPOST('search_invoice_startyear', 'int'));
